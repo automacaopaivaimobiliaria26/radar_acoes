@@ -18,6 +18,9 @@ from .config import ARQUIVO_B3, ARQUIVO_NOMES_B3, JANELA_HISTORICO_B3
 
 
 URL_MODELO = "https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D{data}.ZIP"
+# A B3 aceita a URL direta com User-Agent de navegador; identificadores próprios
+# do script recebiam HTTP 403, embora o mesmo arquivo estivesse disponível no browser.
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 COLUNAS = ("data", "ticker", "fechamento", "quantidade", "volume_rs")
 COLUNAS_NOMES = ("ticker", "nome")
 TENTATIVAS = 3
@@ -29,7 +32,7 @@ LOG = logging.getLogger("radar.b3")
 def baixar_pregao(dia: date, nomes: dict[str, str] | None = None) -> list[list[object]]:
     """Baixa um arquivo diário e extrai ações do mercado à vista em lote padrão."""
     url = URL_MODELO.format(data=dia.strftime("%d%m%Y"))
-    pedido = urllib.request.Request(url, headers={"User-Agent": "RadarPesquisa/1.0"})
+    pedido = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     conteudo = None
     for tentativa in range(1, TENTATIVAS + 1):
         try:
