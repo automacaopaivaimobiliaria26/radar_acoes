@@ -15,6 +15,26 @@ services:
       restart_policy:
         condition: any
 
+  dashboard:
+    build: .
+    image: radar-acoes:local
+    restart: unless-stopped
+    init: true
+    user: radar
+    environment:
+      TZ: America/Sao_Paulo
+      RADAR_INIT_STORAGE: "0"
+    command: ["python", "/app/dashboard.py", "--host", "0.0.0.0", "--port", "8000", "--base-path", "/radar"]
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - radar_saida:/app/saida:ro
+
 volumes:
   radar_dados:
   radar_logs:

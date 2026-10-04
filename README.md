@@ -27,6 +27,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 ├── atencao.py          # consulta o RSS do Google Notícias
 ├── nota.py             # cálculo das notas e geração da watchlist
 ├── main.py             # comando de entrada do projeto
+├── dashboard.py        # página visual que lê as watchlists Markdown
 └── requirements.txt
 ```
 
@@ -92,28 +93,31 @@ Quando a atenção está ausente ou parcial, o cálculo redistribui proporcional
 
 ### Deploy pelo GitHub no EasyPanel
 
-O clone local precisa apontar para o repositório GitHub que você quer usar. No estado atual desta pasta, não há `origin` configurado. Para publicar em um repositório vazio, substitua o endereço de exemplo pelo seu e envie a branch:
-
-```bash
-git remote add origin git@github.com:SEU_USUARIO/SEU_REPOSITORIO.git
-git branch -M main
-git add -A
-git commit -m "Prepare Radar for VPS deployment"
-git push -u origin main
-```
-
-Se o repositório já tiver histórico, primeiro integre esta pasta à branch existente conforme o estado do repositório; não force o push nem sobrescreva commits remotos.
-
-O repositório inclui uma imagem Docker com o cron do Linux configurado para executar de segunda a sexta às 21h30, no horário de Brasília. O processo de cron roda dentro do container; não configure um segundo cron no host para a mesma tarefa, pois isso duplicaria as coletas. A imagem não publica portas e não precisa de domínio ou rota no Traefik: o Radar só inicia conexões de saída para obter os dados.
+O repositório `automacaopaivaimobiliaria26/radar_acoes` contém o projeto. O Docker Compose mantém o coletor agendado e acrescenta o serviço web do dashboard. O cron do Radar executa de segunda a sexta às 21h30, no horário de Brasília; não configure um segundo cron no host.
 
 1. Envie estes arquivos para a branch que será usada no deploy do seu GitHub.
-2. No EasyPanel, crie um **Compose Service** e selecione **GitHub** como origem. Informe `owner/repo`, a branch, o build path `/` e o arquivo `docker-compose.yml`. Para repositório privado, autorize o acesso pelo método oferecido pelo EasyPanel.
-3. Implante o serviço. O Compose constrói a imagem pelo `Dockerfile`, instala as dependências e inicia o cron.
-4. Mantenha uma réplica do serviço. Cada réplica executa a própria agenda e pode duplicar as buscas e gravações.
-5. Confirme os volumes persistentes `radar_dados`, `radar_logs` e `radar_saida`, montados em `/app/dados`, `/app/logs` e `/app/saida`. O `docker-compose.yml` já declara esses volumes.
-6. Não configure domínio nem portas públicas. O painel do EasyPanel pode acompanhar o container; os arquivos de log ficam no volume persistente.
+2. No EasyPanel, atualize a origem GitHub do **Compose Service existente** para `automacaopaivaimobiliaria26/radar_acoes`, branch `main`, build path `/` e Compose file `docker-compose.yml`. Atualizar o mesmo serviço preserva o volume que já contém as watchlists; um Compose Service novo criaria outro conjunto de volumes.
+3. Faça o Deploy. O Compose constrói a imagem pelo `Dockerfile` e inicia o coletor agendado e o dashboard.
+4. Mantenha apenas uma instância do serviço `radar`, para evitar execuções duplicadas. O dashboard lê `/app/saida` em modo somente leitura.
+5. Preserve os volumes `radar_dados`, `radar_logs` e `radar_saida`, montados em `/app/dados`, `/app/logs` e `/app/saida`.
+6. O serviço do Radar não recebe domínio nem porta pública. Para o dashboard, configure no EasyPanel o domínio `www.paivanegociosimobiliarios.com.br`, caminho `/radar`, serviço interno `dashboard` e porta `8000`. Assim a página fica em `https://www.paivanegociosimobiliarios.com.br/radar` e a raiz do site atual permanece intacta.
+7. Ative **Basic Auth** na seção **Security** do Compose Service, com um usuário e uma senha fortes. Não coloque a senha no GitHub nem em arquivos do projeto. O dashboard não publica porta no host; o tráfego externo entra pelo proxy do EasyPanel/Traefik.
+
+### Homologação isolada do dashboard
+
+Antes de adicionar o dashboard ao serviço oficial, valide a interface em um Compose Service separado. O arquivo `docker-compose.homolog.yml` monta apenas `tests/fixtures/watchlists`, não inicia o coletor e não acessa os volumes de produção.
+
+1. Crie no EasyPanel um serviço Compose de homologação separado, apontando para uma branch que contenha esta versão.
+2. Use `docker-compose.homolog.yml` como Compose file e mantenha o domínio de teste distinto do domínio oficial. Não vincule ainda `www.paivanegociosimobiliarios.com.br/radar`.
+3. Ative Basic Auth nas configurações de segurança do EasyPanel e associe um domínio temporário ao serviço `dashboard-homolog`, porta interna `8000`.
+4. Faça o deploy e confira a watchlist de demonstração de 02/10/2026, os cartões, as tabelas dos dois mercados, o seletor de data e a proteção por senha.
+5. Ao terminar, remova o serviço de homologação. Depois da validação, a promoção para `https://www.paivanegociosimobiliarios.com.br/radar` requer confirmação explícita e deve atualizar o Compose Service oficial existente, preservando os volumes.
+
+O fixture usa dados ilustrativos e não deve ser interpretado como coleta ou recomendação. A homologação não executa `main.py` nem escreve nos dados reais.
 
 Ative o auto deploy do GitHub se quiser que cada push faça um novo deploy. Os volumes sobrevivem à recriação do container, mas não substituem backup do VPS. Inclua principalmente `radar_dados`, pois ele guarda o histórico de atenção e as cotações usadas nas análises; a documentação do EasyPanel recomenda definir recuperação para volumes declarados em Compose.
+
+O dashboard lista os arquivos `watchlist_AAAA-MM-DD.md` em `/app/saida`, abre por padrão o mais recente e permite selecionar datas anteriores. Os cartões e tabelas são montados diretamente a partir das tabelas Markdown, sem alterar os arquivos gerados pelo Radar.
 
 O cron está definido em `deploy/radar.cron` e usa a zona `America/Sao_Paulo` configurada na imagem. O bloqueio `flock` impede que duas execuções se sobreponham. O log principal fica em `/app/logs/radar.log`; mensagens do agendador ou de inicialização ficam em `/app/logs/cron.log`.
 
