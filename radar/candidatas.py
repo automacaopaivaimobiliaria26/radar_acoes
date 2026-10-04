@@ -39,8 +39,8 @@ def preparar(
     limite: int = MAX_ACOES_NOTICIAS,
 ) -> list[dict[str, object]]:
     """Ordena B3 e EUA juntos por volume relativo e salva o CSV de entrada do RSS."""
-    series_b3 = carregar_precos(arquivo_b3, "B3")
-    series_eua = carregar_precos(arquivo_eua, "EUA")
+    series_b3 = carregar_precos(arquivo_b3, "B3") if arquivo_b3.exists() else {}
+    series_eua = carregar_precos(arquivo_eua, "EUA") if arquivo_eua.exists() else {}
     nomes = {"B3": carregar_nomes(ARQUIVO_NOMES_B3), "EUA": carregar_nomes(ARQUIVO_NOMES_EUA)}
     candidatas = []
     for mercado, series in (("B3", series_b3), ("EUA", series_eua)):

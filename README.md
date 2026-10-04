@@ -43,7 +43,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar; o coletor registra falhas e repete lotes, mas não garante que todos os símbolos retornem dados. A lista do Nasdaq Trader é filtrada para Nasdaq, NYSE e NYSE American, removendo ETFs, títulos de teste e instrumentos que não pareçam ações comuns.
+O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar. O coletor repete lotes e só substitui o CSV de produção quando a coleta termina com dados; se um lote falhar, preserva o CSV anterior. A lista do Nasdaq Trader é filtrada para Nasdaq, NYSE e NYSE American, removendo ETFs, títulos de teste e instrumentos que não pareçam ações comuns.
 
 ## Primeira execução
 
@@ -65,10 +65,12 @@ O comando executa estas etapas em sequência:
 1. Baixa até 60 pregões recentes da B3 pelo COTAHIST diário.
 2. Baixa o histórico diário das ações selecionadas das listas da Nasdaq Trader e filtra preço acima de US$ 5 e média de volume financeiro acima de US$ 5 milhões.
 3. Seleciona até 60 ações com maior volume relativo combinado entre os mercados e consulta as manchetes no RSS do Google Notícias.
-4. Calcula volume relativo, retornos de 5 e 20 pregões, percentis separados por mercado e a nota ponderada.
+4. Calcula volume relativo, retornos de 5 e 20 pregões, percentis separados por mercado e a nota ponderada. Na B3, BDRs e ações com salto absoluto superior a 40% em uma das últimas 20 variações são excluídos para reduzir distorções de eventos corporativos não ajustados.
 5. Salva `saida/watchlist_AAAA-MM-DD.md` e registra a execução em `logs/radar.log`.
 
-Para uma execução reduzida do pipeline, use `python main.py --limite-eua 20`. A B3 continua sendo coletada normalmente; a opção limita apenas a quantidade de símbolos dos EUA processados.
+Se a atualização de um mercado falhar, o Radar tenta gerar uma watchlist com o histórico daquele mercado já existente e o mercado que conseguiu atualizar. Se a etapa de notícias falhar, gera a watchlist com os componentes disponíveis. A execução fica registrada como incompleta (código diferente de zero e sem atualizar `ultimo_sucesso.txt`); confira o log antes de considerar a saída completa. A ausência de um dos CSVs de cotações omite esse mercado em vez de interromper o outro.
+
+`python main.py --limite-eua 20` executa apenas uma coleta de teste dos EUA e grava em `dados/eua_teste.csv` e `dados/nomes_eua_teste.csv`. Não atualiza os dados de produção nem gera watchlist. O mesmo vale para `python eua.py --limite 20`; para outro destino de teste, informe `--saida` e `--nomes-saida`. Uma coleta com limite não pode sobrescrever `dados/eua.csv` ou `dados/nomes_eua.csv`.
 
 Rode a suíte local antes de publicar alterações:
 
@@ -119,7 +121,17 @@ Ative o auto deploy do GitHub se quiser que cada push faça um novo deploy. Os v
 
 O dashboard lista os arquivos `watchlist_AAAA-MM-DD.md` em `/app/saida`, abre por padrão o mais recente e permite selecionar datas anteriores. Os cartões e tabelas são montados diretamente a partir das tabelas Markdown, sem alterar os arquivos gerados pelo Radar.
 
-O cron está definido em `deploy/radar.cron` e usa a zona `America/Sao_Paulo` configurada na imagem. O bloqueio `flock` impede que duas execuções se sobreponham. O log principal fica em `/app/logs/radar.log`; mensagens do agendador ou de inicialização ficam em `/app/logs/cron.log`.
+Para recalcular uma watchlist histórica usando os CSVs já presentes no volume persistente, informe a data do pregão. O arquivo de saída com essa data é substituído atomicamente ao final do cálculo:
+
+```bash
+python /app/b3.py
+python /app/eua.py
+python /app/nota.py --data 2026-10-02
+```
+
+Atualizar primeiro os dois históricos restaura o universo completo depois de uma execução de teste antiga. A última linha recalcula preços e indicadores até a data informada e substitui o arquivo em `/app/saida`. Manchetes históricas só aparecem se as contagens daquela data estiverem em `/app/dados/atencao_hist.csv`; o Radar não consegue reconstruir depois a janela original de notícias das últimas 24 horas.
+
+O cron está definido em `deploy/radar.cron` e usa a zona `America/Sao_Paulo` configurada na imagem. Ele inicia às 21h30 de segunda a sexta e verifica a cada hora e na inicialização se o horário diário passou sem nenhuma tentativa. A recuperação roda uma vez, sem duplicar uma tentativa já iniciada; uma execução que falhou precisa ser corrigida e iniciada manualmente. Os carimbos ficam em `/app/dados/ultima_tentativa.txt` e `/app/dados/ultimo_sucesso.txt`. O bloqueio `flock` impede que duas execuções se sobreponham. O log principal fica em `/app/logs/radar.log`; mensagens do agendador ou de inicialização ficam em `/app/logs/cron.log`.
 
 Para conferir se executou, abra o terminal do serviço no EasyPanel e rode:
 
@@ -130,7 +142,7 @@ tail -n 50 /app/logs/cron.log
 
 Confira também o horário do último registro e se há uma watchlist nova em `/app/saida`. No GitHub, a aba **Actions** mostra os testes executados após cada push e pull request; no EasyPanel, a tela do serviço mostra o resultado do último deploy.
 
-Se o VPS estiver desligado às 21h30, o cron não recupera a execução perdida quando o servidor volta. Depois que o VPS estiver online, abra o terminal do serviço no EasyPanel e rode `python /app/main.py` para recuperar manualmente aquele dia. Se a B3 ainda não tiver publicado o arquivo ou algum provedor estiver indisponível, corrija a causa e execute novamente.
+Se o VPS estiver desligado às 21h30, a verificação horária ou a inicialização recupera a execução quando o serviço volta, desde que ainda não haja tentativa registrada naquele horário. Uma execução que já começou e falhou não é repetida automaticamente: consulte o log, corrija a causa e rode `python /app/main.py` manualmente.
 
 ### Cron no host, sem o container agendador
 

@@ -33,6 +33,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 LOG = logging.getLogger("radar.atencao")
 
 
+class BloqueioRSS(RuntimeError):
+    """O provedor limitou as consultas; a coleta deve parar sem insistir."""
+
+
 def normalizar(texto: str) -> str:
     """Normaliza texto para comparar manchetes repetidas."""
     texto = unicodedata.normalize("NFKD", texto.casefold())
@@ -98,6 +102,11 @@ def consulta_rss(candidata: dict[str, str], agora: datetime) -> int | None:
     try:
         with urllib.request.urlopen(pedido, timeout=TIMEOUT) as resposta:
             raiz = ET.fromstring(resposta.read())
+    except urllib.error.HTTPError as erro:
+        if erro.code in {429, 503}:
+            raise BloqueioRSS(f"HTTP {erro.code} do Google Notícias") from erro
+        LOG.warning("Falha no RSS de %s (%s): HTTP %s", ticker, mercado, erro.code)
+        return None
     except (urllib.error.URLError, TimeoutError, ET.ParseError) as erro:
         LOG.warning("Falha no RSS de %s (%s): %s", ticker, mercado, erro)
         return None
@@ -199,10 +208,25 @@ def main() -> int:
     hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     historico = ler_historico(args.historico)
     novas: list[dict[str, object]] = []
+    consultas_interrompidas = False
+    falhas_seguidas = 0
     for indice, candidata in enumerate(candidatas):
-        if indice:
+        if indice and not consultas_interrompidas:
             time.sleep(PAUSA_BUSCAS)
-        contagem = consulta_rss(candidata, agora)
+        contagem = None
+        if not consultas_interrompidas:
+            try:
+                contagem = consulta_rss(candidata, agora)
+            except BloqueioRSS as erro:
+                consultas_interrompidas = True
+                LOG.error("RSS limitou as consultas (%s); as próximas ações ficam sem contagem.", erro)
+            if contagem is None:
+                falhas_seguidas += 1
+                if falhas_seguidas >= 3:
+                    consultas_interrompidas = True
+                    LOG.error("RSS: três falhas seguidas; interrompendo novas consultas nesta execução.")
+            else:
+                falhas_seguidas = 0
         mercado, ticker = candidata["mercado"], candidata["ticker"]
         if contagem is None:
             razao, media, parcial = "", "", True

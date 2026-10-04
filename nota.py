@@ -29,6 +29,8 @@ from radar.config import (
 
 JANELA_MOMENTO_CURTO = 5
 JANELA_MOMENTO_LONGO = 20
+SALTO_MAX_B3 = 0.40
+GAP_MAX_DIAS = 45
 
 # Fórmula: nota = 100 x (0,40 x percentil do volume + 0,25 x percentil do momento
 # + 0,20 x percentil das notícias + 0,15 x percentil da atenção).
@@ -71,7 +73,7 @@ def parse_numero(texto: str) -> float | None:
 
 
 def carregar_precos(caminho: Path, mercado: str) -> dict[str, list[dict[str, object]]]:
-    """Carrega cotações e aceita volume_rs da B3 ou volume em dólares dos EUA."""
+    """Carrega cotações com os nomes de coluna usados pelos dois coletores."""
     series: dict[str, list[dict[str, object]]] = defaultdict(list)
     with caminho.open("r", newline="", encoding="utf-8-sig") as arquivo:
         leitor = csv.DictReader(arquivo)
@@ -82,7 +84,8 @@ def carregar_precos(caminho: Path, mercado: str) -> dict[str, list[dict[str, obj
             ticker = (linha.get("ticker") or linha.get("symbol") or "").strip().upper()
             fechamento = parse_numero(linha.get("fechamento") or linha.get("close") or "")
             volume_financeiro = parse_numero(
-                linha.get("volume_rs") or linha.get("volume") or linha.get("volume_financeiro") or ""
+                linha.get("volume_rs") or linha.get("volume_usd") or linha.get("volume_fin")
+                or linha.get("volume") or linha.get("volume_financeiro") or ""
             )
             if dia is None or not ticker or fechamento is None or fechamento <= 0:
                 continue
@@ -131,7 +134,9 @@ def carregar_atencao(caminho: Path) -> dict[tuple[str, str, date], dict[str, obj
     return resultado
 
 
-def indicadores(serie: list[dict[str, object]], ate: date) -> dict[str, object] | None:
+def indicadores(
+    serie: list[dict[str, object]], ate: date, mercado: str | None = None
+) -> dict[str, object] | None:
     """Calcula os indicadores apenas com observações até a data de referência."""
     conhecidas = [registro for registro in serie if registro["data"] <= ate]
     if len(conhecidas) < JANELA_MOMENTO_LONGO + 1:
@@ -142,12 +147,19 @@ def indicadores(serie: list[dict[str, object]], ate: date) -> dict[str, object] 
         return None
 
     anteriores_volume = conhecidas[-(JANELA_VOLUME + 1):-1]
+    if (ate - conhecidas[-(JANELA_MOMENTO_LONGO + 1)]["data"]).days > GAP_MAX_DIAS:
+        return None
     media_volume = sum(registro["volume_financeiro"] for registro in anteriores_volume) / JANELA_VOLUME
     if media_volume <= 0:
         return None
     fechamento_atual = atual["fechamento"]
     retorno_5 = fechamento_atual / conhecidas[-(JANELA_MOMENTO_CURTO + 1)]["fechamento"] - 1
     retorno_20 = fechamento_atual / conhecidas[-(JANELA_MOMENTO_LONGO + 1)]["fechamento"] - 1
+    if mercado == "B3":
+        fechamentos = [registro["fechamento"] for registro in conhecidas[-(JANELA_MOMENTO_LONGO + 1):]]
+        saltos = [abs(atual / anterior - 1) for anterior, atual in zip(fechamentos, fechamentos[1:])]
+        if saltos and max(saltos) > SALTO_MAX_B3:
+            return None
     return {
         "data": ate,
         "volume_relativo": atual["volume_financeiro"] / media_volume,
@@ -176,15 +188,16 @@ def montar_mercado(
     mercado: str,
     series: dict[str, list[dict[str, object]]],
     atencao: dict[tuple[str, str, date], dict[str, object]],
+    ate: date | None = None,
 ) -> tuple[date | None, list[dict[str, object]]]:
     """Calcula as notas de um mercado em sua última data disponível."""
-    datas = [registro["data"] for serie in series.values() for registro in serie]
+    datas = [registro["data"] for serie in series.values() for registro in serie if ate is None or registro["data"] <= ate]
     if not datas:
         return None, []
     data_referencia = max(datas)
     base: dict[str, dict[str, object]] = {}
     for ticker, serie in series.items():
-        item = indicadores(serie, data_referencia)
+        item = indicadores(serie, data_referencia, mercado)
         if item is None:
             continue
         minimo_liquidez = MINIMO_LIQUIDEZ_B3 if mercado == "B3" else MINIMO_LIQUIDEZ_EUA
@@ -279,7 +292,9 @@ def gravar_watchlist(caminho: Path, resultados: dict[str, tuple[date | None, lis
                 f"{item['retorno_5']:+.2%} | {noticias} | {motivo(item)} |"
             )
         linhas.append("")
-    caminho.write_text("\n".join(linhas), encoding="utf-8")
+    temporario = caminho.with_suffix(caminho.suffix + ".tmp")
+    temporario.write_text("\n".join(linhas), encoding="utf-8")
+    temporario.replace(caminho)
 
 
 def main() -> int:
@@ -287,25 +302,39 @@ def main() -> int:
     parser.add_argument("--b3", type=Path, default=ARQUIVO_B3, help="CSV de preços da B3 (padrão: b3.csv).")
     parser.add_argument("--eua", type=Path, default=ARQUIVO_EUA, help="CSV de preços dos EUA (padrão: eua.csv).")
     parser.add_argument("--atencao", type=Path, default=ARQUIVO_ATENCAO, help="Histórico de notícias (padrão: atencao_hist.csv).")
+    parser.add_argument("--data", type=date.fromisoformat, help="Data de referência AAAA-MM-DD para reproduzir uma watchlist histórica.")
     parser.add_argument("--saida", type=Path, help="Markdown de saída; por padrão saida/watchlist_AAAA-MM-DD.md.")
     args = parser.parse_args()
 
-    try:
-        series_b3 = carregar_precos(args.b3, "B3")
-        series_eua = carregar_precos(args.eua, "EUA")
-    except (OSError, ValueError) as erro:
-        LOG.error("Não foi possível carregar cotações: %s", erro)
+    series_b3: dict[str, list[dict[str, object]]] = {}
+    series_eua: dict[str, list[dict[str, object]]] = {}
+    for mercado, caminho in (("B3", args.b3), ("EUA", args.eua)):
+        if not caminho.exists():
+            LOG.warning("%s não existe; esse mercado será omitido da watchlist.", caminho)
+            continue
+        try:
+            series = carregar_precos(caminho, mercado)
+        except (OSError, ValueError) as erro:
+            LOG.error("Não foi possível carregar %s: %s; esse mercado será omitido.", caminho, erro)
+            continue
+        if mercado == "B3":
+            series_b3 = series
+        else:
+            series_eua = series
+    if not series_b3 and not series_eua:
+        LOG.error("Não há cotações válidas nos CSVs de entrada.")
         return 1
     atencao = carregar_atencao(args.atencao)
-    data_b3, lista_b3 = montar_mercado("B3", series_b3, atencao)
-    data_eua, lista_eua = montar_mercado("EUA", series_eua, atencao)
+    data_b3, lista_b3 = montar_mercado("B3", series_b3, atencao, args.data)
+    data_eua, lista_eua = montar_mercado("EUA", series_eua, atencao, args.data)
     referencias = [dia for dia in (data_b3, data_eua) if dia is not None]
     if not referencias:
         LOG.error("Não há cotações válidas nos CSVs de entrada.")
         return 1
-    data_arquivo = max(referencias)
+    data_arquivo = args.data or max(referencias)
     destino = args.saida or PASTA_SAIDA / f"watchlist_{data_arquivo.isoformat()}.md"
     try:
+        destino.parent.mkdir(parents=True, exist_ok=True)
         gravar_watchlist(destino, {"B3": (data_b3, lista_b3), "EUA": (data_eua, lista_eua)})
     except OSError as erro:
         LOG.error("Não foi possível gravar %s: %s", destino, erro)
