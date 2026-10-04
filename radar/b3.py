@@ -68,7 +68,8 @@ def baixar_pregao(dia: date, nomes: dict[str, str] | None = None) -> list[list[o
             continue
         try:
             # Índices fixos do layout oficial; preços e volume financeiro vêm em centavos.
-            data_linha = date(int(linha[6:10]), int(linha[4:6]), int(linha[2:4]))
+            # O campo de data do COTAHIST vem no formato AAAAMMDD.
+            data_linha = date(int(linha[2:6]), int(linha[6:8]), int(linha[8:10]))
             ticker = linha[12:24].strip()
             fechamento = int(linha[108:121]) / 100
             quantidade = int(linha[152:170])
