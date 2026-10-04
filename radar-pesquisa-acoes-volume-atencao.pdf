@@ -1,0 +1,2060 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 9215
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0.118 g
+56.6929133858267775 785.1970866141732586 Td
+(Radar de pesquisa de acoes com IA: volume, atencao e nota de) Tj
+ET
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0.118 g
+56.6929133858267775 763.9372440944881646 Td
+(0 a 100, com dados gratis) Tj
+ET
+0.91 0.39 0.04 RG
+56.6929133858267775 737.0081102362204319 m
+538.5870866141731312 737.0081102362204319 l
+S
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 714.3309448818897636 Td
+(O sistema aqui e de pesquisa: todo dia, depois do fechamento, ele le o volume de todas as acoes da B3 e dos EUA,) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 701.5750393700786844 Td
+(acha as que negociaram muito acima do normal, cruza com o crescimento de noticias e da uma nota de 0 a 100,) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 688.819133858267719 Td
+(montando uma lista pra voce estudar. Ele nao diz o que comprar, nao preve preco e nao opera nada.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 668.9766141732283131 Td
+(Os dados sao gratis: o arquivo diario oficial da B3, que no pregao de 2 de outubro de 2026 trouxe 318 acoes no) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 656.2207086614173477 Td
+(lote-padrao, a lista de simbolos da Nasdaq, a biblioteca yfinance e o RSS do Google Noticias. O Claude escreve o) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 643.4648031496062686 Td
+(codigo com os 7 prompts desta pagina, e os dois primeiros scripts ja estao prontos e testados.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 623.6222834645668627 Td
+(E o que a pesquisa academica diz de verdade, com os artigos: volume fora do normal e busca no Google ja foram) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 610.8663779527558972 Td
+(ligados a alta nas semanas seguintes, mas a mesma literatura mostra reversao dentro do ano e retorno negativo quando) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 598.1104724409448181 Td
+(a manada entra, entao a nota e um filtro de estudo, nunca um sinal.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 572.5986614173227736 Td
+(Do primeiro script a watchlist rodando sozinha) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 552.7561417322833677 Td
+(Dez passos, e a versao so da B3 fica pronta nos passos 3 e 4 em uma tarde, com dois scripts que voce copia e roda) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 540.0002362204724022 Td
+(sem instalar nada alem do Python.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 515.9057480314959321 Td
+(1. Entenda o que o radar e e o que ele nao e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 502.8663779527558972 Td
+(O radar e uma ferramenta de estudo que organiza o que ja aconteceu: volume, preco e noticias do dia. No Brasil, analise e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 492.661653543307068 Td
+(recomendacao de valores mobiliarios sao atividades reguladas pela CVM, pela Resolucao 20 pro analista e pela Resolucao 19 pro) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 482.4569291338582389 Td
+(consultor, entao a lista que ele gera e pra voce pesquisar, e nao pra mandar como dica pra ninguem.  1\) Ele mostra onde a atencao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 472.2522047244094665 Td
+(cresceu, nao onde o preco vai  2\) Volume alto muitas vezes chega junto ou depois do movimento, e a lista vai mostrar isso ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 462.0474803149606373 Td
+(https://conteudo.cvm.gov.br/legislacao/resolucoes/resol020.html) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 440.5041732283464739 Td
+(2. Prepare o ambiente: Python ou Google Colab) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 427.4648031496063822 Td
+(Os scripts usam so a biblioteca padrao do Python 3, sem pacote extra, e se o seu computador nao tiver o Python voce instala pelo site) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 417.2600787401575531 Td
+(oficial. Sem instalar nada, da pra rodar no Google Colab gratis, colando cada script numa celula; e o Claude no plano gratis ja escreve e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 407.0553543307087239 Td
+(explica o codigo, enquanto o Claude Code, a partir do Pro de R$ 110 por mes, cria e roda os arquivos sozinho na sua pasta. ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 396.8506299212599515 Td
+(https://colab.research.google.com/) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 375.3073228346457881 Td
+(3. Baixe 30 pregoes da B3 com o arquivo oficial) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 362.2679527559056396 Td
+(A B3 publica de graca um arquivo por pregao com fechamento e volume de todos os papeis, o COTAHIST diario. O script abaixo baixa) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 352.0632283464568104 Td
+(os ultimos 30 pregoes, fica so com acoes do mercado a vista no lote-padrao e salva tudo em b3.csv, e levou 12 segundos no teste de 3) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 341.8585039370080381 Td
+(de outubro de 2026.  import csv, io, urllib.request, zipfile) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 331.6537795275592089 Td
+(from datetime import date, timedelta) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 311.2443307086616642 Td
+(def pregao\(d\):) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 301.0396062992127781 Td
+(    url = f'https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D{d:%d%m%Y}.ZIP') Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 290.8348818897640058 Td
+(    try:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 280.6301574803152334 Td
+(        req = urllib.request.Request\(url, headers={'User-Agent': 'Mozilla/5.0'}\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 270.4254330708664611 Td
+(        z = zipfile.ZipFile\(io.BytesIO\(urllib.request.urlopen\(req, timeout=60\).read\(\)\)\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 260.2207086614175751 Td
+(    except Exception:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 250.0159842519688027 Td
+(        return []) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 239.8112598425200304 Td
+(    out = []) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 229.6065354330711443 Td
+(    for l in z.read\(z.namelist\(\)[0]\).decode\('latin-1'\).splitlines\(\):) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 219.401811023622372 Td
+(        if l[:2] == '01' and l[10:12] == '02' and l[24:27] == '010':) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 209.1970866141735996 Td
+(            out.append\([l[2:10], l[12:24].strip\(\), int\(l[108:121]\) / 100, int\(l[152:170]\), int\(l[170:188]\) / 100]\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 198.9923622047248273 Td
+(    return out) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 178.5829133858271689 Td
+(dados, d = [], date.today\(\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 168.3781889763783965 Td
+(while len\({r[0] for r in dados}\) < 30 and \(date.today\(\) - d\).days < 60:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 158.1734645669295105 Td
+(    dados += pregao\(d\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 147.9687401574807382 Td
+(    d -= timedelta\(days=1\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 137.7640157480319658 Td
+(with open\('b3.csv', 'w', newline=''\) as f:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 127.5592913385831935 Td
+(    w = csv.writer\(f\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 117.3545669291343074 Td
+(    w.writerow\(['data', 'ticker', 'fechamento', 'quantidade', 'volume_rs']\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 107.1498425196854214 Td
+(    w.writerows\(sorted\(dados\)\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 96.9451181102365354 Td
+(print\(len\({r[0] for r in dados}\), 'pregoes e', len\(dados\), 'linhas salvas em b3.csv'\)  Atalho: O arquivo de 2 de outubro tem horario de 20h15) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 86.7403937007876493 Td
+(do mesmo dia. O layout de cada coluna esta na pagina de cotacoes historicas da B3. ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 76.5356692913387633 Td
+(https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 9775
+>>
+stream
+0.5670000000000001 w
+0.91 0.39 0.04 RG
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 785.1970866141732586 Td
+(4. Calcule o volume fora do normal e a primeira nota) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 772.1577165354329964 Td
+(A conta do volume relativo e o volume financeiro do dia dividido pela media dos 20 pregoes anteriores: 3,0 quer dizer que a acao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 761.952992125984224 Td
+(negociou o triplo do normal. O script abaixo filtra as acoes com media de pelo menos R$ 1 milhao por dia, transforma volume e retorno) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 751.748267716535338 Td
+(de 5 dias em percentil e da a nota parcial, com 60% de peso pro volume e 40% pro momento.  import csv) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 741.5435433070865656 Td
+(from collections import defaultdict) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 721.1340944881889072 Td
+(serie = defaultdict\(list\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 710.9293700787401349 Td
+(for r in csv.DictReader\(open\('b3.csv'\)\):) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 700.7246456692912489 Td
+(    serie[r['ticker']].append\(\(r['data'], float\(r['fechamento']\), float\(r['volume_rs']\)\)\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 690.5199212598424765 Td
+(ult = max\(d for s in serie.values\(\) for d, _, _ in s\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 680.3151968503935905 Td
+(linhas = []) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 670.1104724409448181 Td
+(for t, s in serie.items\(\):) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 659.9057480314959321 Td
+(    s.sort\(\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 649.7010236220471597 Td
+(    if len\(s\) < 21 or s[-1][0] != ult:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 639.4962992125983874 Td
+(        continue) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 629.291574803149615 Td
+(    media20 = sum\(v for _, _, v in s[-21:-1]\) / 20) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 619.086850393700729 Td
+(    if media20 < 1_000_000:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 608.8821259842519567 Td
+(        continue) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 598.6774015748031843 Td
+(    linhas.append\([t, s[-1][2] / media20, s[-1][1] / s[-6][1] - 1]\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 578.2679527559055259 Td
+(def pct\(i\):) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 568.0632283464567536 Td
+(    ordem = sorted\(x[i] for x in linhas\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 557.8585039370079812 Td
+(    return {x[0]: \(ordem.index\(x[i]\) + 1\) / len\(ordem\) for x in linhas}) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 537.4490551181103228 Td
+(pv, pm = pct\(1\), pct\(2\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 527.2443307086615505 Td
+(for x in linhas:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 517.0396062992126645 Td
+(    x.append\(round\(100 * \(0.6 * pv[x[0]] + 0.4 * pm[x[0]]\)\)\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 506.8348818897639489 Td
+(linhas.sort\(key=lambda x: -x[3]\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 496.6301574803151198 Td
+(print\('pregao', ult, '|', len\(linhas\), 'acoes com media de R$ 1 milhao por dia ou mais'\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 486.4254330708662906 Td
+(for t, rvol, ret5, nota in linhas[:15]:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 476.2207086614175182 Td
+(    print\(f'{t:8} volume {rvol:4.1f}x a media  5 dias {ret5:+.1%}  nota {nota}'\)  Atalho: No teste com o pregao de 2 de outubro, 193 acoes) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 466.015984251968689 Td
+(passaram no filtro de liquidez, e as notas mais altas ja tinham subido de 7% a 30% em 5 dias, o que mostra na pratica que volume alto) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 455.8112598425199167 Td
+(costuma vir junto com o movimento.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 434.2679527559057533 Td
+(5. Peca pro Claude a especificacao do radar completo) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 421.2285826771656048 Td
+(Cole o prompt 1 no Claude com os dois scripts acima em anexo. Ele pergunta o que falta, propoe a estrutura de arquivos e aponta os) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 411.0238582677167756 Td
+(riscos de cada fonte antes de escrever o resto, o que evita refazer tudo depois.  https://claude.ai/new) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 389.4805511811026122 Td
+(6. Some os EUA com a lista da Nasdaq e a yfinance) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 376.4411811023625205 Td
+(Rode o prompt 2 pra gerar o eua.py: ele baixa as listas oficiais de simbolos da Nasdaq e o historico diario pela yfinance, uma biblioteca) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 366.2364566929136913 Td
+(aberta com 25 mil estrelas no GitHub que le os dados do Yahoo Finance. O proprio README lembra que o uso dos dados do Yahoo e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 356.0317322834648621 Td
+(so pessoal.  1\) Alpha Vantage gratis da 25 requisicoes por dia, pouco pra milhares de acoes, e o dado em tempo real ou com 15) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 345.8270078740160898 Td
+(minutos de atraso e pago por regra das bolsas  2\) Pra um radar de fim de dia, o atraso intradiario nao importa, porque a conta usa o) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 335.6222834645672606 Td
+(fechamento  https://github.com/ranaroussi/yfinance) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 314.078976377953154 Td
+(7. Meca a atencao pelas noticias) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 301.0396062992130055 Td
+(Rode o prompt 3 pra gerar o atencao.py, que conta as manchetes das ultimas 24 horas de cada acao no RSS de busca do Google) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 290.8348818897641195 Td
+(Noticias e compara com a media dos 7 dias anteriores. Ele so busca as 60 acoes de maior volume relativo, pra nao passar de milhares) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 280.6301574803153471 Td
+(de buscas por dia.  Atalho: O Google Trends tem API oficial so em fase alfa, com acesso por inscricao, e a biblioteca pytrends, que) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 270.4254330708665748 Td
+(muita gente usava, foi arquivada em 2024. Confira o Trends a mao no site pras 10 maiores notas. ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 260.2207086614178024 Td
+(https://developers.google.com/search/apis/trends) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 238.6774015748036391 Td
+(8. Monte a nota de 0 a 100 e a watchlist) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 225.6380314960634905 Td
+(Rode o prompt 4 pra juntar tudo na formula: nota igual a 100 vezes a soma de 0,40 do percentil do volume relativo, 0,25 do momento,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 215.4333070866146045 Td
+(0,20 das noticias e 0,15 da atencao, sempre comparando a acao com o mercado do mesmo dia. A saida e um arquivo por dia com as) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 205.2285826771658321 Td
+(15 maiores notas de cada mercado e o motivo de cada uma.  Atalho: Os pesos sao um ponto de partida pra estudo, nao um resultado) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 195.0238582677170598 Td
+(testado. Mude e compare no passo 10.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 173.4805511811028964 Td
+(9. Agende pra rodar todo dia util) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 160.4411811023627479 Td
+(Use o prompt 5 pra agendar a sequencia as 21h30 de segunda a sexta. No Mac e no Linux, a linha do cron fica parecida com a de) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 150.2364566929139755 Td
+(baixo, trocando o caminho pela sua pasta.  30 21 * * 1-5 cd ~/radar && python3 b3.py && python3 nota.py >> radar.log 2>&1) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 128.6931496062998121 Td
+(10. Valide antes de acreditar em qualquer nota) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 115.6537795275596636 Td
+(Depois de 4 a 8 semanas de listas salvas, rode o prompt 6 pra comparar o que as notas altas fizeram nos 5 e 20 pregoes seguintes) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 105.4490551181107776 Td
+(com a media do mercado, com custo descontado. O prompt 7 revisa o codigo atras dos erros classicos, como usar dado do futuro sem) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 95.2443307086618915 Td
+(perceber, que fazem qualquer radar parecer melhor do que e.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 8209
+>>
+stream
+0.5670000000000001 w
+0.91 0.39 0.04 RG
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 785.1970866141732586 Td
+(As fontes de dados e o que cada uma da de graca) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 765.3545669291338527 Td
+(Conferidas em 3 de outubro de 2026. Pra um radar diario, dado de fechamento basta.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 741.2600787401574962 Td
+(1. COTAHIST diario da B3) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 728.2207086614173477 Td
+(Um arquivo por pregao com abertura, maxima, minima, fechamento, quantidade e volume financeiro de todos os papeis. Tambem existe) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 718.0159842519684616 Td
+(o arquivo do ano inteiro. ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 707.8112598425195756 Td
+(https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 686.2679527559055259 Td
+(2. brapi) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 673.2285826771652637 Td
+(API brasileira de cotacoes. O plano gratis da 15 mil requisicoes por mes, uma acao por requisicao, atualizacao a cada 30 minutos e ate) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 663.0238582677164914 Td
+(3 meses de historico; o Startup sai R$ 99,99 por mes no anual.  https://brapi.dev/pricing) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 641.480551181102328 Td
+(3. Listas de simbolos da Nasdaq) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 628.4411811023621794 Td
+(Arquivos de texto com todas as acoes listadas na Nasdaq e nas outras bolsas dos EUA, atualizados todo dia, que formam o universo do) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 618.2364566929134071 Td
+(radar.  https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 596.6931496062992437 Td
+(4. yfinance) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 583.6537795275590952 Td
+(Biblioteca aberta de Python que baixa historico diario do Yahoo Finance, inclusive de acoes da B3 com o final .SA. Nao e oficial do) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 573.4490551181102092 Td
+(Yahoo, e os termos do Yahoo limitam o uso a fins pessoais.  https://github.com/ranaroussi/yfinance) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 551.9057480314961595 Td
+(5. Alpha Vantage) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 538.8663779527560109 Td
+(API com chave gratis de 25 requisicoes por dia. Dado em tempo real ou com 15 minutos de atraso dos EUA e so no plano pago, por) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 528.6616535433072386 Td
+(regra das bolsas e da SEC.  https://www.alphavantage.co/support/) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 507.1183464566930184 Td
+(6. RSS do Google Noticias) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 494.0789763779528698 Td
+(Busca de manchetes por termo em formato RSS, em portugues ou em ingles, que da pra ler com o Python sem chave. ) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 483.8742519685040406 Td
+(https://news.google.com/rss/search?q=Petrobras&hl=pt-BR&gl=BR&ceid=BR:pt-419) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 460.9136220472441892 Td
+(O que a pesquisa diz sobre volume e atencao) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 441.0711023622048401 Td
+(Quatro artigos revisados por pares, conferidos no registro oficial de cada um. Eles explicam por que o radar olha volume) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 428.315196850393761 Td
+(e atencao e tambem por que a nota nao e sinal de compra.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 404.2207086614174045 Td
+(1. Volume alto, alta no mes seguinte) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 391.181338582677256 Td
+(Gervais, Kaniel e Mingelgrin acharam que acoes com volume fora do normal num dia ou numa semana tendem a subir no mes seguinte,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 380.9766141732284837 Td
+(e as com volume baixo tendem a cair, efeito que eles ligam a visibilidade da acao.  https://doi.org/10.1111/0022-1082.00349) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 359.4333070866143203 Td
+(2. Busca no Google, alta e depois reversao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 346.3939370078741717 Td
+(Da, Engelberg e Gao mostraram, com acoes do Russell 3000 de 2004 a 2008, que o aumento de buscas no Google preve preco maior) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 336.1892125984253425 Td
+(nas 2 semanas seguintes e uma reversao dentro do ano.  https://doi.org/10.1111/j.1540-6261.2011.01679.x) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 314.6459055118111792 Td
+(3. Pessoa fisica compra o que chama atencao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 301.6065354330710306 Td
+(Barber e Odean mostraram que o investidor individual e comprador liquido de acoes que chamam atencao: as que estao no noticiario,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 291.4018110236222583 Td
+(com volume fora do normal ou com retorno extremo no dia.  https://doi.org/10.1093/rfs/hhm079) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 269.8585039370080949 Td
+(4. Quando a manada entra, o retorno cai) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 256.8191338582679464 Td
+(Barber, Huang, Odean e Schwarz mostraram que a compra intensa de usuarios da Robinhood em acoes de muita atencao vem seguida) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 246.614409448819174 Td
+(de retorno negativo, com media de menos 4,7% em 20 dias nas mais compradas.  https://doi.org/10.1111/jofi.13183) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 223.6537795275593226 Td
+(As regras no Brasil) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 203.8112598425199167 Td
+(Dado direto, conferido no site da CVM.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 179.7167716535435602 Td
+(1. Analise de valores mobiliarios) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 166.6774015748034117 Td
+(Regula a atividade de analista de valores mobiliarios. Publicar relatorio de analise ou recomendacao de acao como profissional exige) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 156.4726771653546393 Td
+(credenciamento.  https://conteudo.cvm.gov.br/legislacao/resolucoes/resol020.html) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 134.9293700787404759 Td
+(2. Consultoria de valores mobiliarios) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 121.8900000000003274 Td
+(Regula a orientacao, a recomendacao e o aconselhamento de investimento prestados de forma profissional a clientes. Dica de compra) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 111.6852755905515551 Td
+(pra terceiros, como servico, e o terreno dessa regra.  https://conteudo.cvm.gov.br/legislacao/resolucoes/resol019.html) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 90.141968503937278 Td
+(3. Ferramenta de estudo) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 77.1025984251970158 Td
+(O radar organiza dados publicos pra voce estudar. A decisao de investir, o risco e a responsabilidade continuam sendo seus, e nada) Tj
+ET
+endstream
+endobj
+9 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 10 0 R
+>>
+endobj
+10 0 obj
+<<
+/Length 9639
+>>
+stream
+0.5670000000000001 w
+0.91 0.39 0.04 RG
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 785.1970866141732586 Td
+(aqui e recomendacao de investimento.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 762.2364566929134071 Td
+(Os 7 prompts pro Claude montar o radar) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 742.3939370078740012 Td
+(Use em ordem, na mesma conversa ou no mesmo Projeto do Claude, e teste cada arquivo antes de pedir o proximo.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 718.2994488188976447 Td
+(1. 1. A especificacao do radar) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 705.2600787401574962 Td
+(Quero montar com voce um radar de pesquisa de acoes, so pra estudo, que roda uma vez por dia depois do fechamento. Ele nao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 695.0553543307086102 Td
+(recomenda compra nem venda e nao opera nada.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 674.6459055118109518 Td
+(O que ele faz:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 664.4411811023621794 Td
+(1. Baixa os dados diarios de fechamento e volume das acoes da B3 pelo arquivo COTAHIST diario, que e gratis no site da B3, e das) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 654.2364566929134071 Td
+(acoes dos EUA pela lista de simbolos da Nasdaq e pela biblioteca yfinance.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 644.0317322834645211 Td
+(2. Calcula o volume relativo: volume financeiro do dia dividido pela media dos 20 pregoes anteriores.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 633.8270078740157487 Td
+(3. Calcula o momento: retorno de 5 e de 20 pregoes.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 623.6222834645668627 Td
+(4. Conta as noticias de cada acao nas ultimas 24 horas pelo RSS de busca do Google Noticias e compara com a media dos 7 dias) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 613.4175590551180903 Td
+(anteriores, guardando o historico num CSV.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 603.212834645669318 Td
+(5. Da uma nota de 0 a 100 pela formula: 100 x \(0,40 x percentil do volume relativo + 0,25 x percentil do momento + 0,20 x percentil das) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 593.0081102362205456 Td
+(noticias + 0,15 x percentil da atencao\), com percentis calculados dentro do universo do dia.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 582.8033858267717733 Td
+(6. Gera a watchlist do dia em CSV e em Markdown, com as 15 maiores notas e o motivo de cada uma em uma linha.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 562.3939370078741149 Td
+(Meu nivel de programacao: [NENHUM, BASICO OU INTERMEDIARIO]. Vou rodar em: [MEU COMPUTADOR COM WINDOWS, MAC,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 552.1892125984252289 Td
+(LINUX OU GOOGLE COLAB].) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 531.7797637795276842 Td
+(Antes de escrever codigo, me faca ate 5 perguntas, proponha a estrutura de arquivos e diga o que pode dar errado em cada fonte de) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 521.5750393700789118 Td
+(dados.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 500.0317322834647484 Td
+(2. 2. Modulo dos EUA) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 486.9923622047245999 Td
+(Escreva o arquivo eua.py do radar:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 476.7876377952757707 Td
+(1. Baixe as listas https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 466.5829133858269415 Td
+(https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt, tire ETFs e papeis de teste e fique so com acoes comuns.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 456.3781889763781692 Td
+(2. Com a yfinance, baixe 60 pregoes de fechamento e volume em lotes de 200 simbolos, com pausa entre os lotes e repeticao em caso) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 446.17346456692934 Td
+(de erro.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 435.9687401574805108 Td
+(3. Filtre preco acima de US$ 5 e volume financeiro medio de 20 dias acima de US$ 5 milhoes.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 425.7640157480317384 Td
+(4. Salve em eua.csv no mesmo formato do b3.csv: data, ticker, fechamento, quantidade e volume.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 415.5592913385829092 Td
+(Explique cada parte em comentarios curtos em portugues e me diga como testar com 20 simbolos antes de rodar tudo.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 394.0159842519687459 Td
+(3. 3. Modulo de atencao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 380.9766141732285973 Td
+(Escreva o arquivo atencao.py do radar:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 370.771889763779825 Td
+(1. Receba a lista das 60 acoes com maior volume relativo do dia, pra nao fazer milhares de buscas.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 360.5671653543309958 Td
+(2. Pra cada uma, busque no RSS do Google Noticias as manchetes das ultimas 24 horas, usando o ticker e o nome da empresa, com) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 350.3624409448822234 Td
+(hl=pt-BR pra B3 e hl=en-US pros EUA, e uma pausa de 2 segundos entre buscas.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 340.1577165354333943 Td
+(3. Conte as manchetes unicas, salve a contagem do dia em atencao_hist.csv e calcule a razao entre hoje e a media dos 7 dias) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 329.9529921259846219 Td
+(anteriores.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 319.7482677165357927 Td
+(4. Sem historico suficiente, use a contagem do dia e marque o campo como parcial.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 309.5435433070870204 Td
+(Nao use bibliotecas nao oficiais do Google Trends. Se eu quiser o Trends, me diga como conferir a mao no site as 10 maiores notas.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 288.000236220472857 Td
+(4. 4. Nota de 0 a 100 e watchlist) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 274.9608661417327085 Td
+(Escreva o arquivo nota.py que le b3.csv, eua.csv e atencao_hist.csv e:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 264.7561417322839361 Td
+(1. Calcula o volume relativo, o momento de 5 e 20 pregoes e a razao de noticias.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 254.5514173228350501 Td
+(2. Converte cada um em percentil dentro do mercado do dia, separando B3 e EUA.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 244.3466929133862777 Td
+(3. Aplica a nota: 100 x \(0,40 volume + 0,25 momento + 0,20 noticias + 0,15 atencao\). Se faltar atencao, redistribui o peso de forma) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 234.1419685039375054 Td
+(proporcional e marca a nota como parcial.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 223.9372440944886193 Td
+(4. Escreve watchlist_AAAA-MM-DD.md com as 15 maiores notas de cada mercado, numa tabela com ticker, nota, volume relativo,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 213.732519685039847 Td
+(retorno de 5 dias, noticias e o motivo em uma linha.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 203.5277952755910746 Td
+(5. No topo do arquivo, escreve: Radar de pesquisa. Nao e recomendacao de investimento.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 193.3230708661423023 Td
+(Mostre a formula num comentario e nao use nenhum dado do dia seguinte no calculo.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 171.7797637795281389 Td
+(5. 5. Rodar sozinho todo dia) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 158.7403937007879904 Td
+(Meu radar tem os arquivos b3.py, eua.py, atencao.py e nota.py na pasta [CAMINHO]. Sistema: [MAC, LINUX OU WINDOWS].) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 138.330944881890332 Td
+(Me ensine, passo a passo, a agendar a sequencia pra rodar de segunda a sexta as 21h30, depois que a B3 publica o arquivo do dia,) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 128.1262204724415597 Td
+(com um registro de erros em radar.log. No Mac e no Linux use o cron; no Windows use o Agendador de Tarefas. Diga como conferir se) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 117.9214960629927873 Td
+(rodou e o que fazer se o computador estiver desligado nesse horario.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 96.3781889763785102 Td
+(6. 6. Diario de validacao) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 83.338818897638248 Td
+(Tenho [N] semanas de watchlists salvas em arquivos watchlist_AAAA-MM-DD.md e os precos diarios em b3.csv e eua.csv.) Tj
+ET
+endstream
+endobj
+11 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 12 0 R
+>>
+endobj
+12 0 obj
+<<
+/Length 6619
+>>
+stream
+0.5670000000000001 w
+0.91 0.39 0.04 RG
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 785.1970866141732586 Td
+(Escreva um script que, pra cada dia, compare o retorno dos 5 e dos 20 pregoes seguintes das 15 maiores notas com o retorno medio) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 774.9923622047243725 Td
+(de todas as acoes do universo do mesmo dia. Mostre a media, a mediana, a porcentagem de acertos e o pior caso.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 754.5829133858267141 Td
+(Regras: desconte um custo de 0,1% por operacao de ida e de volta, nao use preco que o radar nao conhecia no dia, separe B3 e EUA e) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 744.3781889763779418 Td
+(me diga com quantos dias o resultado ainda e ruido. Explique o resultado em portugues, sem conclusao de investimento.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 722.8348818897637784 Td
+(7. 7. Revisao de erros do codigo) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 709.7955118110235162 Td
+(Revise o codigo abaixo do meu radar de pesquisa de acoes procurando:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 699.5907874015747439 Td
+(1. Uso de dado do futuro no calculo de qualquer pregao.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 689.3860629921259715 Td
+(2. Acoes que deixaram de ser negociadas e somem do historico.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 679.1813385826770855 Td
+(3. Dias sem pregao, feriados e dados faltando.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 668.9766141732283131 Td
+(4. Divisoes e grupamentos de acoes que distorcem o retorno e o volume.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 658.7718897637794271 Td
+(5. Limites de requisicao das fontes.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 648.5671653543306547 Td
+(Pra cada problema, mostre a linha, o efeito no resultado e a correcao.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 628.15771653543311 Td
+(CODIGO:) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 617.952992125984224 Td
+([COLE AQUI]) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 594.9923622047244862 Td
+(Antes de confiar no radar) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 575.1498425196850803 Td
+(Seis conferencias, e se uma falhar, volte ao passo dela.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 555.3073228346456744 Td
+(O b3.csv tem 30 pregoes e as datas batem com o calendario da B3  |  A nota de um dia so usa dado daquele dia ou de) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 542.5514173228345953 Td
+(antes  |  As acoes com menos de R$ 1 milhao por dia ficaram de fora  |  A watchlist traz no topo que e radar de pesquisa) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 529.7955118110236299 Td
+(e nao recomendacao  |  Voce tem pelo menos 4 semanas de listas antes de olhar o resultado  |  A validacao desconta) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 517.0396062992126645 Td
+(custo e compara com a media do mercado do mesmo dia) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 491.5277952755905631 Td
+(Funciona no Brasil?) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 471.685275590551214 Td
+(Funciona do Brasil com dados gratis e em portugues: o arquivo da B3 e oficial e gratuito, a brapi cobra em real e tem) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 458.9293700787401917 Td
+(plano gratis, e os dados dos EUA vem de fontes abertas. Analise e recomendacao de investimento sao atividades) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 446.1734645669291695 Td
+(reguladas pela CVM, entao o radar e ferramenta de estudo pessoal, nunca dica pra terceiros.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 420.6616535433071249 Td
+(Links) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 400.8191338582677758 Td
+(Cotacoes historicas da B3: https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/m) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 388.0632283464567536 Td
+(ercado-a-vista/cotacoes-historicas/  |  Planos da brapi: https://brapi.dev/pricing  |  yfinance:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 375.3073228346457313 Td
+(https://github.com/ranaroussi/yfinance  |  Lista de acoes da Nasdaq:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 362.5514173228346522 Td
+(https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt  |  API alfa do Google Trends:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 349.7955118110236299 Td
+(https://developers.google.com/search/apis/trends  |  Google Colab: https://colab.research.google.com/  |  In Search of) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 337.0396062992126076 Td
+(Attention: https://doi.org/10.1111/j.1540-6261.2011.01679.x  |  Resolucao CVM 20:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 324.2837007874015853 Td
+(https://conteudo.cvm.gov.br/legislacao/resolucoes/resol020.html) Tj
+ET
+0.91 0.39 0.04 RG
+56.6929133858267775 298.7718897637795408 m
+538.5870866141731312 298.7718897637795408 l
+S
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 276.0947244094488724 Td
+(Dica do Fabiano) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 259.0868503937008427 Td
+(Eu nunca quis adivinhar acao, eu so queria parar de descobrir as coisas pelo noticiario quando todo mundo ja sabia, e e) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 246.3309448818897636 Td
+(isso que um radar de volume faz: organiza onde a atencao cresceu ontem. Rode a versao da B3 por um mes antes de) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 233.5750393700787981 Td
+(somar os EUA e as noticias, e so mude os pesos da nota depois de olhar a validacao do passo 10. Se a lista do dia) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 220.819133858267719 Td
+(parecer boa demais, desconfie primeiro do codigo.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.392 g
+56.6929133858267775 191.0553543307087239 Td
+(fabiano.app) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R 7 0 R 9 0 R 11 0 R ]
+/Count 5
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+21 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+22 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+23 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+24 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+25 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+26 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 13 0 R
+/F2 14 0 R
+/F3 15 0 R
+/F4 16 0 R
+/F5 17 0 R
+/F6 18 0 R
+/F7 19 0 R
+/F8 20 0 R
+/F9 21 0 R
+/F10 22 0 R
+/F11 23 0 R
+/F12 24 0 R
+/F13 25 0 R
+/F14 26 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+27 0 obj
+<<
+/Producer (jsPDF 4.2.1)
+/CreationDate (D:20261004024413-00'00')
+>>
+endobj
+28 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 29
+0000000000 65535 f 
+0000044422 00000 n 
+0000046269 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000009419 00000 n 
+0000009556 00000 n 
+0000019383 00000 n 
+0000019520 00000 n 
+0000027781 00000 n 
+0000027919 00000 n 
+0000037611 00000 n 
+0000037750 00000 n 
+0000044504 00000 n 
+0000044630 00000 n 
+0000044761 00000 n 
+0000044895 00000 n 
+0000045033 00000 n 
+0000045157 00000 n 
+0000045286 00000 n 
+0000045418 00000 n 
+0000045554 00000 n 
+0000045682 00000 n 
+0000045809 00000 n 
+0000045938 00000 n 
+0000046071 00000 n 
+0000046173 00000 n 
+0000046522 00000 n 
+0000046608 00000 n 
+trailer
+<<
+/Size 29
+/Root 28 0 R
+/Info 27 0 R
+/ID [ <C4436ABDECB2F191B558A378762D0EEC> <C4436ABDECB2F191B558A378762D0EEC> ]
+>>
+startxref
+46712
+%%EOF
