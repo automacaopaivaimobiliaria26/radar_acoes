@@ -31,7 +31,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 └── requirements.txt
 ```
 
-Os arquivos de dados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). Os arquivos `nomes_b3.csv` e `nomes_eua.csv` alimentam as consultas com nome empresarial.
+Os arquivos de dados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). Os arquivos `nomes_b3.csv` e `nomes_eua.csv` alimentam as consultas com nome empresarial. As descrições curtas vêm do perfil público do Yahoo Finance e ficam em cache local em `dados/empresas.csv`.
 
 ## Instalação no Ubuntu
 
@@ -89,7 +89,7 @@ nota = 100 x (0,40 x percentil_volume
            + 0,15 x percentil_atencao)
 ```
 
-Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias exige nome e ticker quando há nome cadastrado; se não houver nome, usa o ticker. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
+Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta ticker, nome empresarial e a descrição curta disponível; sem nome ou descrição, usa os dados que existirem. As descrições e bolsas ficam em cache por até 180 dias; falhas de perfil são tentadas novamente após 14 dias e não interrompem a coleta. A watchlist inclui ticker, empresa, bolsa e descrição, exibindo “Não informada” ou “Descrição indisponível” quando a fonte não fornecer esses dados. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
 
 ## Agendamento no VPS
 

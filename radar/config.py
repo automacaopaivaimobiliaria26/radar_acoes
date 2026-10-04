@@ -14,6 +14,7 @@ ARQUIVO_ATENCAO = PASTA_DADOS / "atencao_hist.csv"
 ARQUIVO_CANDIDATAS = PASTA_DADOS / "candidatas.csv"
 ARQUIVO_NOMES_B3 = PASTA_DADOS / "nomes_b3.csv"
 ARQUIVO_NOMES_EUA = PASTA_DADOS / "nomes_eua.csv"
+ARQUIVO_EMPRESAS = PASTA_DADOS / "empresas.csv"
 ARQUIVO_LOG = PASTA_LOGS / "radar.log"
 
 MAX_ACOES_NOTICIAS = 60

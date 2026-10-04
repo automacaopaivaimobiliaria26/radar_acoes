@@ -130,6 +130,9 @@ def carregar_atencao(caminho: Path) -> dict[tuple[str, str, date], dict[str, obj
                 "noticias": parse_numero(linha.get("noticias_24h") or linha.get("noticias") or ""),
                 "atencao": parse_numero(linha.get("razao_atencao") or linha.get("razao") or ""),
                 "parcial": (linha.get("parcial") or "").strip().casefold() in {"sim", "true", "1", "yes"},
+                "nome": (linha.get("nome") or "").strip(),
+                "bolsa": (linha.get("bolsa") or "").strip(),
+                "descricao": (linha.get("descricao") or "").strip(),
             }
     return resultado
 
@@ -207,6 +210,9 @@ def montar_mercado(
             continue
         hist = atencao.get((mercado, ticker, data_referencia), {})
         item["ticker"] = ticker
+        item["nome"] = hist.get("nome") or ticker
+        item["bolsa"] = hist.get("bolsa") or ("B3" if mercado == "B3" else "Não informada")
+        item["descricao"] = hist.get("descricao") or ""
         item["noticias"] = hist.get("noticias")
         item["atencao"] = hist.get("atencao")
         item["atencao_parcial"] = bool(hist.get("parcial", False))
@@ -281,20 +287,28 @@ def gravar_watchlist(caminho: Path, resultados: dict[str, tuple[date | None, lis
             linhas.extend(["Sem ações com histórico suficiente para calcular os indicadores.", ""])
             continue
         linhas.extend([
-            "| Ticker | Nota | Volume relativo | Retorno 5 pregões | Notícias 24h | Motivo |",
-            "|---|---:|---:|---:|---:|---|",
+            "| Ticker | Empresa | Bolsa | Descrição | Nota | Volume relativo | Retorno 5 pregões | Notícias 24h | Motivo |",
+            "|---|---|---|---|---:|---:|---:|---:|---|",
         ])
         for item in lista[:LIMITE_WATCHLIST]:
             noticias = "—" if item["noticias"] is None else str(int(item["noticias"]))
             nota = f"{item['nota']:.1f}" + (" (parcial)" if item["nota_parcial"] else "")
+            nome = _celula_markdown(item.get("nome") or item["ticker"])
+            bolsa = _celula_markdown(item.get("bolsa") or "Não informada")
+            descricao = _celula_markdown(item.get("descricao") or "Descrição indisponível")
             linhas.append(
-                f"| {item['ticker']} | {nota} | {item['volume_relativo']:.2f}x | "
-                f"{item['retorno_5']:+.2%} | {noticias} | {motivo(item)} |"
+                f"| {_celula_markdown(item['ticker'])} | {nome} | {bolsa} | {descricao} | {nota} | "
+                f"{item['volume_relativo']:.2f}x | {item['retorno_5']:+.2%} | {noticias} | {_celula_markdown(motivo(item))} |"
             )
         linhas.append("")
     temporario = caminho.with_suffix(caminho.suffix + ".tmp")
     temporario.write_text("\n".join(linhas), encoding="utf-8")
     temporario.replace(caminho)
+
+
+def _celula_markdown(valor: object) -> str:
+    """Mantém nomes e descrições em uma única célula de tabela Markdown."""
+    return " ".join(str(valor).replace("|", "/").split())
 
 
 def main() -> int:

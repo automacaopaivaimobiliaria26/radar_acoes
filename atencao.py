@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from radar.empresas import enriquecer_candidatas
 from radar.config import ARQUIVO_ATENCAO, ARQUIVO_CANDIDATAS, MAX_ACOES_NOTICIAS
 
 
@@ -25,7 +26,7 @@ MAX_ACOES = MAX_ACOES_NOTICIAS
 PAUSA_BUSCAS = 2.0
 TIMEOUT = 25
 COLUNAS_HISTORICO = (
-    "data", "mercado", "ticker", "nome", "volume_relativo",
+    "data", "mercado", "ticker", "nome", "bolsa", "descricao", "volume_relativo",
     "noticias_24h", "media_7d", "razao_atencao", "parcial",
 )
 
@@ -64,6 +65,7 @@ def ler_candidatas(caminho: Path, limite: int = MAX_ACOES) -> list[dict[str, str
             mercado = valor_coluna(linha, "mercado", "market").upper()
             ticker = valor_coluna(linha, "ticker", "symbol").upper()
             nome = valor_coluna(linha, "nome", "empresa", "name", "security name")
+            descricao = valor_coluna(linha, "descricao", "description", "long business summary")
             bruto_rvol = valor_coluna(linha, "volume_relativo", "rvol", "relative_volume")
             if mercado not in {"B3", "EUA", "US"} or not ticker or not bruto_rvol:
                 continue
@@ -73,7 +75,10 @@ def ler_candidatas(caminho: Path, limite: int = MAX_ACOES) -> list[dict[str, str
                 continue
             if mercado == "US":
                 mercado = "EUA"
-            candidatas.append({"mercado": mercado, "ticker": ticker, "nome": nome, "volume_relativo": rvol})
+            candidatas.append({
+                "mercado": mercado, "ticker": ticker, "nome": nome,
+                "descricao": descricao, "volume_relativo": rvol,
+            })
 
     # Mantém apenas uma linha por ação e prioriza seu maior volume relativo.
     unicas: dict[tuple[str, str], dict[str, str]] = {}
@@ -89,8 +94,17 @@ def consulta_rss(candidata: dict[str, str], agora: datetime) -> int | None:
     mercado = candidata["mercado"]
     ticker = candidata["ticker"]
     nome = candidata["nome"].strip()
-    # Inclui ticker e nome para reduzir resultados de símbolos ambíguos.
-    consulta = f'"{ticker}"' if not nome or normalizar(nome) == normalizar(ticker) else f'"{ticker}" OR "{nome}"'
+    descricao = candidata.get("descricao", "").strip()
+    # Ticker e nome desambiguam o ativo; a descrição acrescenta contexto de negócio à busca.
+    citar = lambda texto: '"' + texto.replace('"', " ").strip() + '"'
+    termos = [citar(ticker)]
+    if nome and normalizar(nome) != normalizar(ticker):
+        termos.append(citar(nome))
+    if descricao:
+        # Busca uma frase compacta da descrição; o texto completo segue na watchlist.
+        contexto = " ".join(descricao.split()[:12])
+        termos.append(citar(contexto))
+    consulta = " OR ".join(termos)
     idioma = "pt-BR" if mercado == "B3" else "en-US"
     regiao = "BR" if mercado == "B3" else "US"
     codigo_edicao = "BR:pt-419" if mercado == "B3" else "US:en"
@@ -203,6 +217,10 @@ def main() -> int:
         LOG.error("Nenhuma candidata válida. O CSV precisa ter mercado, ticker e volume_relativo.")
         return 1
 
+    candidatas = enriquecer_candidatas(candidatas)
+    LOG.info("Descrições empresariais disponíveis para %d de %d candidatas.",
+             sum(bool(item.get("descricao")) for item in candidatas), len(candidatas))
+
     agora = datetime.now(timezone.utc)
     # Usa a data local do Radar; o corte das últimas 24 horas continua em UTC.
     hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
@@ -239,6 +257,8 @@ def main() -> int:
             "mercado": mercado,
             "ticker": ticker,
             "nome": candidata["nome"],
+            "bolsa": candidata.get("bolsa", "B3" if mercado == "B3" else "Não informada"),
+            "descricao": candidata.get("descricao", ""),
             "volume_relativo": f"{candidata['volume_relativo']:.6f}",
             "noticias_24h": contagem_csv,
             "media_7d": f"{media:.6f}" if isinstance(media, (int, float)) else "",
