@@ -134,7 +134,9 @@ def carregar_atencao(caminho: Path) -> dict[tuple[str, str, date], dict[str, obj
     return resultado
 
 
-def indicadores(serie: list[dict[str, object]], ate: date, mercado: str) -> dict[str, object] | None:
+def indicadores(
+    serie: list[dict[str, object]], ate: date, mercado: str | None = None
+) -> dict[str, object] | None:
     """Calcula os indicadores apenas com observações até a data de referência."""
     conhecidas = [registro for registro in serie if registro["data"] <= ate]
     if len(conhecidas) < JANELA_MOMENTO_LONGO + 1:
