@@ -68,7 +68,7 @@ class TestRadar(unittest.TestCase):
     def test_le_registro_cotahist_de_largura_fixa(self):
         linha = bytearray(b" " * 188)
         linha[0:2] = b"01"
-        linha[2:10] = b"02102026"
+        linha[2:10] = b"20261002"
         linha[10:12] = b"02"
         linha[12:24] = b"PETR4       "
         linha[24:27] = b"010"
