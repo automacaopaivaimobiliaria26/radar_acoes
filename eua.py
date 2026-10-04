@@ -11,7 +11,7 @@ import re
 import sys
 import time
 import urllib.request
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from radar.config import (
     ARQUIVO_EUA,
@@ -38,6 +38,7 @@ DIAS_HISTORICO = 60
 PAUSA_LOTES = 2.0
 TENTATIVAS = 3
 PAUSA_REPETICAO = 5.0
+DIAS_PRESERVAR_HISTORICO = 150
 PRECO_MINIMO = MINIMO_PRECO_EUA
 VOLUME_MEDIO_MINIMO = MINIMO_LIQUIDEZ_EUA
 
@@ -145,36 +146,39 @@ def coletar(simbolos: list[str]) -> list[list[object]]:
     for indice, lote in enumerate(lotes, start=1):
         LOG.info("Baixando lote %d/%d (%d símbolos)", indice, len(lotes), len(lote))
         dados = baixar_lote(lote)
-        if dados is not None:
-            for ticker in lote:
-                fechamento = extrair_coluna(dados, ticker, "Close")
-                quantidade = extrair_coluna(dados, ticker, "Volume")
-                if fechamento is None or quantidade is None:
-                    continue
+        if dados is None:
+            raise RuntimeError(
+                f"Lote {indice}/{len(lotes)} falhou após as tentativas; o CSV anterior será preservado."
+            )
+        for ticker in lote:
+            fechamento = extrair_coluna(dados, ticker, "Close")
+            quantidade = extrair_coluna(dados, ticker, "Volume")
+            if fechamento is None or quantidade is None:
+                continue
 
-                pares = []
-                for dia, preco, qtd in zip(fechamento.index, fechamento, quantidade):
-                    if preco is None or qtd is None:
-                        continue
-                    try:
-                        preco_num = float(preco)
-                        qtd_num = int(float(qtd))
-                    except (TypeError, ValueError, OverflowError):
-                        continue
-                    if preco_num > 0 and qtd_num > 0:
-                        pares.append((dia, preco_num, qtd_num))
-
-                pares = pares[-DIAS_HISTORICO:]
-                if len(pares) < 21:
+            pares = []
+            for dia, preco, qtd in zip(fechamento.index, fechamento, quantidade):
+                if preco is None or qtd is None:
                     continue
-                # Usa os 20 pregões anteriores ao mais recente para medir liquidez.
-                media_dolar_20 = sum(preco * qtd for _, preco, qtd in pares[-21:-1]) / 20
-                if pares[-1][1] <= PRECO_MINIMO or media_dolar_20 <= VOLUME_MEDIO_MINIMO:
+                try:
+                    preco_num = float(preco)
+                    qtd_num = int(float(qtd))
+                except (TypeError, ValueError, OverflowError):
                     continue
+                if preco_num > 0 and qtd_num > 0:
+                    pares.append((dia, preco_num, qtd_num))
 
-                for dia, preco, qtd in pares:
-                    data = dia.date().isoformat() if hasattr(dia, "date") else str(dia)[:10]
-                    saida.append([data, ticker, round(preco, 6), qtd, round(preco * qtd, 2)])
+            pares = pares[-DIAS_HISTORICO:]
+            if len(pares) < 21:
+                continue
+            # Usa os 20 pregões anteriores ao mais recente para medir liquidez.
+            media_dolar_20 = sum(preco * qtd for _, preco, qtd in pares[-21:-1]) / 20
+            if pares[-1][1] <= PRECO_MINIMO or media_dolar_20 <= VOLUME_MEDIO_MINIMO:
+                continue
+
+            for dia, preco, qtd in pares:
+                data = dia.date().isoformat() if hasattr(dia, "date") else str(dia)[:10]
+                saida.append([data, ticker, round(preco, 6), qtd, round(preco * qtd, 2)])
         if indice < len(lotes):
             time.sleep(PAUSA_LOTES)
 
@@ -183,22 +187,62 @@ def coletar(simbolos: list[str]) -> list[list[object]]:
 
 
 def gravar_csv(linhas: list[list[object]], destino: Path = ARQUIVO_SAIDA) -> None:
-    """Grava no mesmo formato de colunas do CSV de cotações da B3."""
+    """Grava o CSV atomicamente, sem substituir dados válidos por uma gravação interrompida."""
     destino.parent.mkdir(parents=True, exist_ok=True)
-    with destino.open("w", newline="", encoding="utf-8") as arquivo:
+    temporario = destino.with_suffix(destino.suffix + ".tmp")
+    with temporario.open("w", newline="", encoding="utf-8") as arquivo:
         escritor = csv.writer(arquivo)
         escritor.writerow(COLUNAS)
         escritor.writerows(linhas)
+    temporario.replace(destino)
+
+
+def preservar_historico_anterior(linhas: list[list[object]], origem: Path) -> list[list[object]]:
+    """Mantém até 150 dias de papéis que saíram dos filtros atuais, para reprocessar datas passadas."""
+    if not origem.exists():
+        return linhas
+    tickers_atualizados = {str(linha[1]).upper() for linha in linhas}
+    corte = (date.today() - timedelta(days=DIAS_PRESERVAR_HISTORICO)).isoformat()
+    anteriores: list[list[object]] = []
+    with origem.open("r", newline="", encoding="utf-8-sig") as arquivo:
+        for registro in csv.DictReader(arquivo):
+            dia = (registro.get("data") or "").strip()[:10]
+            ticker = (registro.get("ticker") or registro.get("symbol") or "").strip().upper()
+            if not dia or dia < corte or not ticker or ticker in tickers_atualizados:
+                continue
+            try:
+                fechamento = float(registro.get("fechamento") or registro.get("close") or "")
+                quantidade = int(float(registro.get("quantidade") or registro.get("volume_shares") or ""))
+                volume = float(
+                    registro.get("volume") or registro.get("volume_usd") or registro.get("volume_fin")
+                    or registro.get("volume_financeiro") or ""
+                )
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if fechamento > 0 and quantidade > 0 and volume > 0:
+                anteriores.append([dia, ticker, fechamento, quantidade, volume])
+    combinadas = {(str(linha[0]), str(linha[1]).upper()): linha for linha in anteriores}
+    combinadas.update({(str(linha[0]), str(linha[1]).upper()): linha for linha in linhas})
+    return sorted(combinadas.values(), key=lambda linha: (str(linha[0]), str(linha[1])))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Baixa dados diários de ações dos EUA para o Radar.")
-    parser.add_argument("--limite", type=int, help="Limita a coleta aos primeiros N símbolos (ex.: --limite 20).")
-    parser.add_argument("--saida", type=Path, default=ARQUIVO_SAIDA, help="Caminho do CSV gerado (padrão: dados/eua.csv).")
-    parser.add_argument("--nomes-saida", type=Path, default=ARQUIVO_NOMES_EUA, help="CSV de ticker e nome das empresas.")
+    parser.add_argument("--limite", type=int, help="Limita a coleta aos primeiros N símbolos; grava em arquivo de teste por padrão.")
+    parser.add_argument("--saida", type=Path, help="Caminho do CSV gerado (sem --saida, usa dados/eua.csv ou dados/eua_teste.csv).")
+    parser.add_argument("--nomes-saida", type=Path, help="CSV de nomes (sem opção, acompanha o destino escolhido).")
     args = parser.parse_args()
     if args.limite is not None and args.limite < 1:
         parser.error("--limite deve ser maior que zero")
+
+    destino_padrao = ARQUIVO_SAIDA if args.limite is None else ARQUIVO_SAIDA.with_name("eua_teste.csv")
+    nomes_padrao = ARQUIVO_NOMES_EUA if args.limite is None else ARQUIVO_NOMES_EUA.with_name("nomes_eua_teste.csv")
+    destino = args.saida or destino_padrao
+    nomes_destino = args.nomes_saida or nomes_padrao
+    if args.limite is not None and destino.resolve() == ARQUIVO_SAIDA.resolve():
+        parser.error("coletas com --limite não podem gravar em dados/eua.csv; escolha outro --saida")
+    if args.limite is not None and nomes_destino.resolve() == ARQUIVO_NOMES_EUA.resolve():
+        parser.error("coletas com --limite não podem substituir dados/nomes_eua.csv; escolha outro --nomes-saida")
 
     try:
         nomes = acoes_com_nomes()
@@ -214,21 +258,34 @@ def main() -> int:
         return 1
 
     LOG.info("%d símbolos selecionados", len(simbolos))
-    linhas = coletar(simbolos)
     try:
-        gravar_csv(linhas, args.saida)
-    except OSError:
-        LOG.exception("Não foi possível gravar %s", args.saida)
+        linhas = coletar(simbolos)
+    except Exception as erro:
+        LOG.exception("Coleta dos EUA não concluída: %s", erro)
         return 1
-    LOG.info("%s salvo: %d linhas, %d ações aprovadas no filtro", args.saida, len(linhas), len({linha[1] for linha in linhas}))
     try:
-        args.nomes_saida.parent.mkdir(parents=True, exist_ok=True)
-        with args.nomes_saida.open("w", newline="", encoding="utf-8") as arquivo:
+        if not linhas:
+            raise RuntimeError("A coleta não retornou linhas; o CSV anterior foi preservado.")
+        if destino.resolve() == ARQUIVO_SAIDA.resolve():
+            linhas = preservar_historico_anterior(linhas, destino)
+        gravar_csv(linhas, destino)
+    except RuntimeError as erro:
+        LOG.error("Coleta dos EUA não concluída: %s", erro)
+        return 1
+    except OSError:
+        LOG.exception("Não foi possível gravar %s", destino)
+        return 1
+    LOG.info("%s salvo: %d linhas, %d ações aprovadas no filtro", destino, len(linhas), len({linha[1] for linha in linhas}))
+    try:
+        nomes_destino.parent.mkdir(parents=True, exist_ok=True)
+        temporario_nomes = nomes_destino.with_suffix(nomes_destino.suffix + ".tmp")
+        with temporario_nomes.open("w", newline="", encoding="utf-8") as arquivo:
             escritor = csv.writer(arquivo)
             escritor.writerow(("ticker", "nome"))
             escritor.writerows(sorted(nomes.items()))
+        temporario_nomes.replace(nomes_destino)
     except OSError:
-        LOG.exception("Não foi possível gravar nomes em %s", args.nomes_saida)
+        LOG.exception("Não foi possível gravar nomes em %s", nomes_destino)
         return 1
     LOG.info("Coleta referente a %s", date.today().isoformat())
     return 0

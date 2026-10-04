@@ -66,6 +66,9 @@ def baixar_pregao(dia: date, nomes: dict[str, str] | None = None) -> list[list[o
         # CODBDI 02 e TPMERC 010 correspondem ao recorte usado no material de referência.
         if len(linha) < 188 or linha[:2] != "01" or linha[10:12] != "02" or linha[24:27] != "010":
             continue
+        # ESPECI DRN/DR3 identifica BDRs; manter apenas ações negociadas diretamente na B3.
+        if linha[39:49].strip().upper().startswith("DR"):
+            continue
         try:
             # Índices fixos do layout oficial; preços e volume financeiro vêm em centavos.
             # O campo de data do COTAHIST vem no formato AAAAMMDD.
