@@ -1,0 +1,21 @@
+services:
+  radar:
+    build: .
+    image: radar-acoes:local
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: America/Sao_Paulo
+    volumes:
+      - radar_dados:/app/dados
+      - radar_logs:/app/logs
+      - radar_saida:/app/saida
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+volumes:
+  radar_dados:
+  radar_logs:
+  radar_saida:

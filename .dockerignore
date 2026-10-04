@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+.venv
+venv
+tests
+__pycache__
+*.py[cod]
+dados/*.csv
+dados/*.tmp
+logs/*.log
+saida/*.md

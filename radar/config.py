@@ -1,0 +1,29 @@
+"""Caminhos e parâmetros compartilhados do Radar."""
+
+from pathlib import Path
+
+
+RAIZ = Path(__file__).resolve().parent.parent
+PASTA_DADOS = RAIZ / "dados"
+PASTA_LOGS = RAIZ / "logs"
+PASTA_SAIDA = RAIZ / "saida"
+
+ARQUIVO_B3 = PASTA_DADOS / "b3.csv"
+ARQUIVO_EUA = PASTA_DADOS / "eua.csv"
+ARQUIVO_ATENCAO = PASTA_DADOS / "atencao_hist.csv"
+ARQUIVO_CANDIDATAS = PASTA_DADOS / "candidatas.csv"
+ARQUIVO_NOMES_B3 = PASTA_DADOS / "nomes_b3.csv"
+ARQUIVO_NOMES_EUA = PASTA_DADOS / "nomes_eua.csv"
+ARQUIVO_LOG = PASTA_LOGS / "radar.log"
+
+MAX_ACOES_NOTICIAS = 60
+LIMITE_WATCHLIST = 15
+MINIMO_LIQUIDEZ_B3 = 1_000_000.0
+MINIMO_LIQUIDEZ_EUA = 5_000_000.0
+MINIMO_PRECO_EUA = 5.0
+JANELA_VOLUME = 20
+JANELA_HISTORICO_B3 = 60
+PESO_VOLUME = 0.40
+PESO_MOMENTO = 0.25
+PESO_NOTICIAS = 0.20
+PESO_ATENCAO = 0.15

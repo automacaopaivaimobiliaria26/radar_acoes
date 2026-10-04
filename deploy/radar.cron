@@ -1,0 +1,5 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Horário de Brasília é configurado na imagem e no serviço.
+30 21 * * 1-5 radar cd /app && /usr/bin/flock -n /app/logs/radar.lock /usr/local/bin/python /app/main.py >> /app/logs/cron.log 2>&1
