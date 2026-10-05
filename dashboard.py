@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import logging
+import os
 import re
+import unicodedata
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -14,10 +17,118 @@ from urllib.parse import parse_qs, urlsplit
 
 
 PASTA_SAIDA = Path("/app/saida")
+PASTA_CADASTRO = Path(os.environ.get("RADAR_CADASTRO_DIR", Path(__file__).resolve().parent / "referencias"))
 PADRAO_ARQUIVO = re.compile(r"^watchlist_(\d{4}-\d{2}-\d{2})\.md$")
 PADRAO_SECAO = re.compile(r"^##\s+(B3|EUA)\s+—\s+referência:\s*(.+?)\s*$", re.IGNORECASE)
 PADRAO_NUMERO = re.compile(r"[-+]?\d+(?:[.,]\d+)?")
 LOG = logging.getLogger("radar.dashboard")
+_CACHE_CADASTRO: dict[Path, tuple[int | None, int | None, dict[str, dict[str, str]]]] = {}
+
+
+def normalizar_ticker(ticker: str) -> str:
+    """Normaliza tickers de referência e watchlist para a chave de cruzamento."""
+    normalizado = (ticker or "").strip().upper()
+    return normalizado[:-3] if normalizado.endswith(".SA") else normalizado
+
+
+def _normalizar_cabecalho(texto: str) -> str:
+    texto = unicodedata.normalize("NFKD", texto.casefold())
+    texto = "".join(caractere for caractere in texto if not unicodedata.combining(caractere))
+    return re.sub(r"[^a-z0-9]+", " ", texto).strip()
+
+
+def _ler_arquivo_cadastro(caminho: Path) -> dict[str, dict[str, str]]:
+    """Carrega um CSV de empresas, aceitando cabeçalhos em qualquer ordem."""
+    conteudo = None
+    for codificacao in ("utf-8-sig", "latin-1"):
+        try:
+            conteudo = caminho.read_text(encoding=codificacao)
+            break
+        except UnicodeDecodeError:
+            continue
+    if conteudo is None:
+        raise UnicodeError(f"Não foi possível decodificar {caminho}")
+
+    primeira_linha = next((linha for linha in conteudo.splitlines() if linha.strip()), "")
+    try:
+        separador = csv.Sniffer().sniff(primeira_linha, delimiters=",;").delimiter
+    except csv.Error:
+        separador = ";" if primeira_linha.count(";") > primeira_linha.count(",") else ","
+
+    leitor = csv.DictReader(conteudo.splitlines(), delimiter=separador)
+    if not leitor.fieldnames:
+        raise ValueError("CSV sem cabeçalho")
+    campos = {_normalizar_cabecalho(campo): campo for campo in leitor.fieldnames if campo}
+
+    def localizar(predicado) -> str | None:
+        return next((original for normalizado, original in campos.items() if predicado(normalizado)), None)
+
+    coluna_ticker = localizar(lambda texto: "ticker" in texto or "simbolo" in texto)
+    coluna_empresa = localizar(lambda texto: "nome" in texto or "empresa" in texto)
+    coluna_bolsa = localizar(lambda texto: "bolsa" in texto)
+    coluna_descricao = localizar(lambda texto: "descri" in texto)
+    if not coluna_ticker or not coluna_empresa:
+        raise ValueError("CSV precisa ter colunas de ticker/símbolo e nome/empresa")
+
+    cadastro: dict[str, dict[str, str]] = {}
+    for linha in leitor:
+        ticker = normalizar_ticker(linha.get(coluna_ticker) or "")
+        if not ticker:
+            continue
+        cadastro[ticker] = {
+            "empresa": (linha.get(coluna_empresa) or "").strip(),
+            "bolsa": (linha.get(coluna_bolsa) or "").strip() if coluna_bolsa else "",
+            "descricao": (linha.get(coluna_descricao) or "").strip() if coluna_descricao else "",
+        }
+    return cadastro
+
+
+def _carregar_arquivo_cadastro(caminho: Path) -> dict[str, dict[str, str]]:
+    """Usa cache por caminho, tamanho e data de modificação; falhas são isoladas."""
+    try:
+        stat = caminho.stat()
+        modificacao, tamanho = stat.st_mtime_ns, stat.st_size
+    except OSError as erro:
+        anterior = _CACHE_CADASTRO.get(caminho)
+        if anterior and anterior[:2] == (None, None):
+            return anterior[2]
+        LOG.warning("Cadastro de empresas indisponível em %s: %s", caminho, erro)
+        vazio: dict[str, dict[str, str]] = {}
+        _CACHE_CADASTRO[caminho] = (None, None, vazio)
+        return vazio
+
+    anterior = _CACHE_CADASTRO.get(caminho)
+    if anterior and anterior[:2] == (modificacao, tamanho):
+        return anterior[2]
+    try:
+        cadastro = _ler_arquivo_cadastro(caminho)
+    except (OSError, UnicodeError, csv.Error, ValueError) as erro:
+        LOG.warning("Erro ao ler cadastro de empresas %s: %s", caminho, erro)
+        cadastro = {}
+    _CACHE_CADASTRO[caminho] = (modificacao, tamanho, cadastro)
+    return cadastro
+
+
+def carregar_cadastro() -> dict[str, dict[str, dict[str, str]]]:
+    """Carrega os cadastros da B3 e dos EUA, com fallback para o CSV americano antigo."""
+    arquivo_b3 = PASTA_CADASTRO / "empresas_b3.csv"
+    arquivo_eua_novo = PASTA_CADASTRO / "empresas_nyse_nasdaq_bolsa.csv"
+    arquivo_eua_antigo = PASTA_CADASTRO / "empresas_nyse_nasdaq.csv"
+    arquivo_eua = arquivo_eua_novo if arquivo_eua_novo.is_file() else arquivo_eua_antigo
+    return {
+        "B3": _carregar_arquivo_cadastro(arquivo_b3),
+        "EUA": _carregar_arquivo_cadastro(arquivo_eua),
+    }
+
+
+def _valor_watchlist_valido(valor: str, ticker: str, campo: str) -> bool:
+    texto = (valor or "").strip()
+    marcadores = {"", "nao informada", "descricao indisponivel"}
+    if _normalizar_cabecalho(texto) in marcadores:
+        return False
+    if campo == "empresa" and normalizar_ticker(texto) == normalizar_ticker(ticker):
+        return False
+    return True
 
 
 def numero(texto: str) -> float | None:
@@ -33,6 +144,7 @@ def numero(texto: str) -> float | None:
 
 def ler_watchlist(caminho: Path) -> dict[str, object]:
     """Converte as duas tabelas Markdown em dados para a página."""
+    cadastro_por_mercado = carregar_cadastro()
     mercados: dict[str, dict[str, object]] = {
         "B3": {"referencia": None, "acoes": []},
         "EUA": {"referencia": None, "acoes": []},
@@ -78,8 +190,16 @@ def ler_watchlist(caminho: Path) -> dict[str, object]:
             retorno_20 = numero(captura_20.group(1))
         acoes = mercados[mercado_atual]["acoes"]
         assert isinstance(acoes, list)
+        ticker = campo("ticker")
+        cadastro = cadastro_por_mercado.get(mercado_atual, {}).get(normalizar_ticker(ticker), {})
+        empresa_watchlist = campo("empresa", campo("nome da empresa"))
+        bolsa_watchlist = campo("bolsa")
+        descricao_watchlist = campo("descrição", campo("descricao", campo("descrição resumida")))
         acoes.append({
-            "ticker": campo("ticker"),
+            "ticker": ticker,
+            "empresa": empresa_watchlist if _valor_watchlist_valido(empresa_watchlist, ticker, "empresa") else cadastro.get("empresa") or "—",
+            "bolsa": bolsa_watchlist if _valor_watchlist_valido(bolsa_watchlist, ticker, "bolsa") else cadastro.get("bolsa") or "—",
+            "descricao": descricao_watchlist if _valor_watchlist_valido(descricao_watchlist, ticker, "descricao") else cadastro.get("descricao") or "—",
             "nota": nota,
             "parcial": "parcial" in campo("nota").casefold() or "nota parcial" in motivo.casefold(),
             "volume_relativo": volume,
@@ -157,12 +277,15 @@ def html_dashboard(base_path: str) -> str:
     .table-heading {{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:21px 22px 4px }}
     .market-tag {{ padding:5px 9px; border-radius:999px; background:var(--teal-light); color:#126b72; font-size:11px; font-weight:850; letter-spacing:.08em }}
     .table-wrap {{ overflow:auto; padding:0 14px 14px }}
-    table {{ width:100%; border-collapse:collapse; min-width:760px; font-size:13px }}
+    table {{ width:100%; border-collapse:collapse; min-width:1050px; font-size:13px }}
     th {{ padding:12px 10px; border-bottom:1px solid var(--line); color:var(--muted); text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap }}
     td {{ padding:13px 10px; border-bottom:1px solid #edf1f4; vertical-align:top }}
     tbody tr:hover {{ background:#f8fbfc }}
     td.num, th.num {{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums }}
     .ticker {{ font-weight:850; color:var(--navy) }}
+    .company-cell {{ min-width:230px; max-width:320px }}
+    .company-name {{ font-weight:800; color:var(--navy) }}
+    .company-details {{ margin-top:3px; color:var(--muted); font-size:12px; line-height:1.35; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden }}
     .score {{ font-weight:850; color:#126d70 }}
     .badge {{ display:inline-block; margin-left:5px; padding:2px 6px; border-radius:999px; background:#fff2dc; color:#8a5c17; font-size:10px; font-weight:800; vertical-align:middle }}
     .positive {{ color:var(--green); font-weight:750 }} .negative {{ color:var(--red); font-weight:750 }}
@@ -196,8 +319,8 @@ function marketChart(name,rows){{
   return `<article class="panel"><h2>${{name}} · maiores notas</h2><p class="panel-sub">Top 5 da watchlist selecionada</p>${{top.length?top.map(x=>`<div class="bar-row"><span class="bar-ticker">${{safe(x.ticker)}}</span><div class="bar-track"><div class="bar" style="width:${{Math.max(3,x.nota/max*100)}}%"></div></div><span class="bar-value">${{fmt(x.nota)}}</span></div>`).join(''):'<div class="empty">Sem ações neste mercado.</div>'}}</article>`
 }}
 function marketTable(name,rows){{
- const body=rows.map((x,i)=>`<tr><td class="num">${{i+1}}</td><td class="ticker">${{safe(x.ticker)}}</td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`).join('');
- return `<article class="panel table-panel"><div class="table-heading"><div><h2>${{name}}</h2><p class="panel-sub">${{rows.length}} ações na watchlist</p></div><span class="market-tag">${{name==='B3'?'BRASIL':'ESTADOS UNIDOS'}}</span></div>${{rows.length?`<div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Ticker</th><th class="num">Nota</th><th class="num">Vol. relativo</th><th class="num">Ret. 5 pregões</th><th class="num">Ret. 20 pregões</th><th class="num">Notícias 24h</th><th>Motivo</th></tr></thead><tbody>${{body}}</tbody></table></div>`:'<div class="empty">Nenhuma ação nesta seção.</div>'}}</article>`
+ const body=rows.map((x,i)=>{{const detalhes=[x.bolsa,x.descricao].filter(v=>v&&v!=='—').map(safe).join(' · ')||'—';return `<tr><td class="num">${{i+1}}</td><td class="ticker">${{safe(x.ticker)}}</td><td class="company-cell"><div class="company-name">${{safe(x.empresa||'—')}}</div><div class="company-details">${{detalhes}}</div></td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`}}).join('');
+ return `<article class="panel table-panel"><div class="table-heading"><div><h2>${{name}}</h2><p class="panel-sub">${{rows.length}} ações na watchlist</p></div><span class="market-tag">${{name==='B3'?'BRASIL':'ESTADOS UNIDOS'}}</span></div>${{rows.length?`<div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Ticker</th><th>Empresa</th><th class="num">Nota</th><th class="num">Vol. relativo</th><th class="num">Ret. 5 pregões</th><th class="num">Ret. 20 pregões</th><th class="num">Notícias 24h</th><th>Motivo</th></tr></thead><tbody>${{body}}</tbody></table></div>`:'<div class="empty">Nenhuma ação nesta seção.</div>'}}</article>`
 }}
 function render(data,date){{
  const b3=data.mercados.B3.acoes,eua=data.mercados.EUA.acoes;
