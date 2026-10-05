@@ -15,6 +15,9 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 │   ├── calculo.py      # interface para indicadores e percentis
 │   ├── watchlist.py    # interface para o relatório Markdown
 │   └── main.py         # orquestra a sequência completa
+├── referencias/        # cadastros versionados de empresas e bolsas
+│   ├── empresas_b3.csv
+│   └── empresas_nyse_nasdaq.csv
 ├── dados/              # arquivos CSV gerados durante as coletas
 ├── logs/               # radar.log
 ├── saida/              # watchlists Markdown
@@ -31,7 +34,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 └── requirements.txt
 ```
 
-Os arquivos de dados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). Os arquivos `nomes_b3.csv` e `nomes_eua.csv` alimentam as consultas com nome empresarial. As descrições curtas vêm do perfil público do Yahoo Finance e ficam em cache local em `dados/empresas.csv`.
+Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). O cadastro de empresa, a descrição e a bolsa vêm exclusivamente dos arquivos versionados em `referencias/empresas_b3.csv` e `referencias/empresas_nyse_nasdaq.csv`; o Radar não consulta provedores externos para esses metadados.
 
 ## Instalação no Ubuntu
 
@@ -89,7 +92,7 @@ nota = 100 x (0,40 x percentil_volume
            + 0,15 x percentil_atencao)
 ```
 
-Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta ticker, nome empresarial e a descrição curta disponível; sem nome ou descrição, usa os dados que existirem. As descrições e bolsas ficam em cache por até 180 dias; falhas de perfil são tentadas novamente após 14 dias e não interrompem a coleta. A watchlist inclui ticker, empresa, bolsa e descrição, exibindo “Não informada” ou “Descrição indisponível” quando a fonte não fornecer esses dados. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
+Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta ticker, nome empresarial e descrição curta dos arquivos em `referencias/`. A watchlist inclui ticker, empresa, bolsa e descrição. Se um ticker não estiver no cadastro de referência, o Radar usa o ticker como nome e informa “Não informada” para a bolsa; não recorre a outra fonte de metadados. Para atualizar esses cadastros, substitua os CSVs em `referencias/` e publique uma nova versão do aplicativo. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
 
 ## Agendamento no VPS
 
