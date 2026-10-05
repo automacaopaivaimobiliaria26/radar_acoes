@@ -50,6 +50,41 @@ class DashboardTestes(unittest.TestCase):
         self.assertEqual(eua["ticker"], "AAOI")
         self.assertIsNone(eua["noticias"])
 
+    def test_enriquece_watchlist_com_cadastro_e_prioriza_valores_reais(self) -> None:
+        cadastro = self.saida / "referencias"
+        cadastro.mkdir()
+        (cadastro / "empresas_b3.csv").write_text(
+            '"Descrição resumida";Ticker;Bolsa;"Nome Empresa"\n'
+            'Serviços de logística;JSLG3;B3;JSL S.A.\n', encoding="utf-8-sig"
+        )
+        (cadastro / "empresas_nyse_nasdaq.csv").write_text(
+            "Bolsa,Descrição resumida,Ticker,Nome da Empresa\n"
+            "NASDAQ,Equipment and technology,AAOI,Applied Optoelectronics Inc.\n", encoding="utf-8"
+        )
+        watchlist = self.saida / "watchlist_enriquecida.md"
+        watchlist.write_text(
+            "## B3 — referência: 2026-10-02\n\n"
+            "| Ticker | Empresa | Bolsa | Descrição | Nota | Volume relativo | Retorno 5 pregões | Notícias 24h | Motivo |\n"
+            "|---|---|---|---|---:|---:|---:|---:|---|\n"
+            "| JSLG3.SA | JSL Participações | Não informada | Descrição indisponível | 90 | 2.5x | +5.0% | 1 | retorno de 20 pregões +8.0% |\n\n"
+            "## EUA — referência: 2026-10-02\n\n"
+            "| Ticker | Empresa | Bolsa | Descrição | Nota | Volume relativo | Retorno 5 pregões | Notícias 24h | Motivo |\n"
+            "|---|---|---|---|---:|---:|---:|---:|---|\n"
+            "| AAOI | AAOI | — | - | 80 | 1.5x | -2.0% | 0 | retorno de 20 pregões +1.0% |\n",
+            encoding="utf-8",
+        )
+        with patch.object(dashboard, "PASTA_CADASTRO", cadastro):
+            resultado = dashboard.ler_watchlist(watchlist)
+
+        b3 = resultado["mercados"]["B3"]["acoes"][0]
+        eua = resultado["mercados"]["EUA"]["acoes"][0]
+        self.assertEqual(b3["empresa"], "JSL Participações")
+        self.assertEqual(b3["bolsa"], "B3")
+        self.assertEqual(b3["descricao"], "Serviços de logística")
+        self.assertEqual(eua["empresa"], "Applied Optoelectronics Inc.")
+        self.assertEqual(eua["bolsa"], "NASDAQ")
+        self.assertEqual(eua["descricao"], "Equipment and technology")
+
     def test_lista_datas_validas_da_mais_recente_para_mais_antiga(self) -> None:
         (self.saida / "watchlist_2026-10-03.md").write_text(AMOSTRA, encoding="utf-8")
         with patch.object(dashboard, "PASTA_SAIDA", self.saida):
