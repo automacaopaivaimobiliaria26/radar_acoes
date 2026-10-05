@@ -6,8 +6,6 @@ import csv
 from pathlib import Path
 
 from nota import carregar_precos, indicadores
-from .empresas import enriquecer_candidatas
-
 from .config import (
     ARQUIVO_B3,
     ARQUIVO_CANDIDATAS,
@@ -51,19 +49,18 @@ def preparar(
             })
 
     candidatas.sort(key=lambda item: (-item["volume_relativo"], item["mercado"], item["ticker"]))
-    selecionadas = enriquecer_candidatas(candidatas[:limite])
+    selecionadas = candidatas[:limite]
     destino.parent.mkdir(parents=True, exist_ok=True)
     temporario = destino.with_suffix(destino.suffix + ".tmp")
     with temporario.open("w", newline="", encoding="utf-8") as arquivo:
         escritor = csv.DictWriter(
             arquivo,
-            fieldnames=("mercado", "ticker", "nome", "bolsa", "descricao", "volume_relativo"),
+            fieldnames=("mercado", "ticker", "volume_relativo"),
         )
         escritor.writeheader()
         for item in selecionadas:
             escritor.writerow({
-                "mercado": item["mercado"], "ticker": item["ticker"], "nome": item["nome"],
-                "bolsa": item["bolsa"], "descricao": item["descricao"],
+                "mercado": item["mercado"], "ticker": item["ticker"],
                 "volume_relativo": f"{item['volume_relativo']:.8f}",
             })
     temporario.replace(destino)

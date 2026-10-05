@@ -15,7 +15,6 @@ from datetime import date, timedelta
 from pathlib import Path
 from radar.config import (
     ARQUIVO_EUA,
-    ARQUIVO_NOMES_EUA,
     MINIMO_LIQUIDEZ_EUA,
     MINIMO_PRECO_EUA,
 )
@@ -58,9 +57,9 @@ def ler_lista(url: str) -> list[dict[str, str]]:
     return list(leitor)
 
 
-def acoes_com_nomes() -> dict[str, str]:
-    """Retorna símbolos e nomes de ações comuns, sem ETFs ou papéis de teste."""
-    simbolos: dict[str, str] = {}
+def simbolos_comuns() -> list[str]:
+    """Retorna símbolos de ações comuns, sem ETFs ou papéis de teste."""
+    simbolos: set[str] = set()
     padrao_acao = re.compile(r"\b(common stock|common shares?|ordinary shares?|class [a-z]+ common)\b", re.I)
     nao_acao = re.compile(r"\b( warrant| warrants| right| rights| unit| units| preferred| depositary|notes?|debentures?)\b", re.I)
 
@@ -81,13 +80,8 @@ def acoes_com_nomes() -> dict[str, str]:
                 continue
             # O Yahoo usa hífen em classes como BRK.B, que vêm com ponto na lista.
             ticker_yahoo = ticker.replace(".", "-").replace("$", "-")
-            simbolos[ticker_yahoo] = nome
-    return dict(sorted(simbolos.items()))
-
-
-def simbolos_comuns() -> list[str]:
-    """Mantém a interface simples usada pelos comandos e integrações anteriores."""
-    return list(acoes_com_nomes())
+            simbolos.add(ticker_yahoo)
+    return sorted(simbolos)
 
 
 def extrair_coluna(dados, ticker: str, campo: str):
@@ -230,29 +224,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Baixa dados diários de ações dos EUA para o Radar.")
     parser.add_argument("--limite", type=int, help="Limita a coleta aos primeiros N símbolos; grava em arquivo de teste por padrão.")
     parser.add_argument("--saida", type=Path, help="Caminho do CSV gerado (sem --saida, usa dados/eua.csv ou dados/eua_teste.csv).")
-    parser.add_argument("--nomes-saida", type=Path, help="CSV de nomes (sem opção, acompanha o destino escolhido).")
     args = parser.parse_args()
     if args.limite is not None and args.limite < 1:
         parser.error("--limite deve ser maior que zero")
 
     destino_padrao = ARQUIVO_SAIDA if args.limite is None else ARQUIVO_SAIDA.with_name("eua_teste.csv")
-    nomes_padrao = ARQUIVO_NOMES_EUA if args.limite is None else ARQUIVO_NOMES_EUA.with_name("nomes_eua_teste.csv")
     destino = args.saida or destino_padrao
-    nomes_destino = args.nomes_saida or nomes_padrao
     if args.limite is not None and destino.resolve() == ARQUIVO_SAIDA.resolve():
         parser.error("coletas com --limite não podem gravar em dados/eua.csv; escolha outro --saida")
-    if args.limite is not None and nomes_destino.resolve() == ARQUIVO_NOMES_EUA.resolve():
-        parser.error("coletas com --limite não podem substituir dados/nomes_eua.csv; escolha outro --nomes-saida")
-
     try:
-        nomes = acoes_com_nomes()
-        simbolos = list(nomes)
+        simbolos = simbolos_comuns()
     except Exception as erro:
         LOG.exception("Não foi possível carregar as listas de símbolos: %s", erro)
         return 1
     if args.limite:
         simbolos = simbolos[:args.limite]
-        nomes = {ticker: nomes[ticker] for ticker in simbolos}
     if not simbolos:
         LOG.error("Nenhuma ação comum foi encontrada nas listas.")
         return 1
@@ -276,17 +262,6 @@ def main() -> int:
         LOG.exception("Não foi possível gravar %s", destino)
         return 1
     LOG.info("%s salvo: %d linhas, %d ações aprovadas no filtro", destino, len(linhas), len({linha[1] for linha in linhas}))
-    try:
-        nomes_destino.parent.mkdir(parents=True, exist_ok=True)
-        temporario_nomes = nomes_destino.with_suffix(nomes_destino.suffix + ".tmp")
-        with temporario_nomes.open("w", newline="", encoding="utf-8") as arquivo:
-            escritor = csv.writer(arquivo)
-            escritor.writerow(("ticker", "nome"))
-            escritor.writerows(sorted(nomes.items()))
-        temporario_nomes.replace(nomes_destino)
-    except OSError:
-        LOG.exception("Não foi possível gravar nomes em %s", nomes_destino)
-        return 1
     LOG.info("Coleta referente a %s", date.today().isoformat())
     return 0
 

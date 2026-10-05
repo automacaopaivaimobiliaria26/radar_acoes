@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .config import ARQUIVO_B3, ARQUIVO_NOMES_B3, JANELA_HISTORICO_B3
+from .config import ARQUIVO_B3, JANELA_HISTORICO_B3
 
 
 URL_MODELO = "https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D{data}.ZIP"
@@ -22,14 +22,13 @@ URL_MODELO = "https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D{data}.
 # do script recebiam HTTP 403, embora o mesmo arquivo estivesse disponível no browser.
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 COLUNAS = ("data", "ticker", "fechamento", "quantidade", "volume_rs")
-COLUNAS_NOMES = ("ticker", "nome")
 TENTATIVAS = 3
 PAUSA_REPETICAO = 2.0
 DIAS_BUSCA = 130
 LOG = logging.getLogger("radar.b3")
 
 
-def baixar_pregao(dia: date, nomes: dict[str, str] | None = None) -> list[list[object]]:
+def baixar_pregao(dia: date) -> list[list[object]]:
     """Baixa um arquivo diário e extrai ações do mercado à vista em lote padrão."""
     url = URL_MODELO.format(data=dia.strftime("%d%m%Y"))
     pedido = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
@@ -81,28 +80,22 @@ def baixar_pregao(dia: date, nomes: dict[str, str] | None = None) -> list[list[o
             continue
         if ticker and fechamento > 0 and quantidade > 0 and volume_rs > 0:
             resultado.append([data_linha.isoformat(), ticker, fechamento, quantidade, volume_rs])
-            if nomes is not None:
-                nome = linha[27:39].strip()
-                if nome:
-                    nomes[ticker] = nome
     return resultado
 
 
 def baixar_historico(
     destino: Path = ARQUIVO_B3,
-    arquivo_nomes: Path = ARQUIVO_NOMES_B3,
     quantidade_pregoes: int = JANELA_HISTORICO_B3,
 ) -> int:
-    """Busca pregões recentes, grava cotações e tabela ticker/nome."""
+    """Busca pregões recentes e grava somente as cotações."""
     if quantidade_pregoes < 21:
         raise ValueError("São necessários pelo menos 21 pregões para os cálculos do Radar.")
     hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     registros: list[list[object]] = []
-    nomes: dict[str, str] = {}
     dias = set()
     dia = hoje
     while len(dias) < quantidade_pregoes and (hoje - dia).days <= DIAS_BUSCA:
-        lote = baixar_pregao(dia, nomes)
+        lote = baixar_pregao(dia)
         registros.extend(lote)
         dias.update(linha[0] for linha in lote)
         dia -= timedelta(days=1)
@@ -110,7 +103,6 @@ def baixar_historico(
         raise RuntimeError(f"A B3 retornou apenas {len(dias)} pregões; são necessários ao menos 21.")
 
     gravar_csv_atomico(destino, COLUNAS, registros)
-    gravar_csv_atomico(arquivo_nomes, COLUNAS_NOMES, [[ticker, nome] for ticker, nome in sorted(nomes.items())])
     LOG.info("B3: %d pregões e %d linhas gravadas em %s", len(dias), len(registros), destino)
     return len(dias)
 
@@ -131,11 +123,10 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Baixa COTAHIST diário e salva b3.csv.")
     parser.add_argument("--saida", type=Path, default=ARQUIVO_B3)
-    parser.add_argument("--nomes", type=Path, default=ARQUIVO_NOMES_B3)
     parser.add_argument("--pregoes", type=int, default=JANELA_HISTORICO_B3)
     args = parser.parse_args()
     try:
-        baixar_historico(args.saida, args.nomes, args.pregoes)
+        baixar_historico(args.saida, args.pregoes)
     except (OSError, RuntimeError, ValueError) as erro:
         LOG.error("Coleta da B3 não concluída: %s", erro)
         return 1

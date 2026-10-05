@@ -7,16 +7,11 @@ RAIZ = Path(__file__).resolve().parent.parent
 PASTA_DADOS = RAIZ / "dados"
 PASTA_LOGS = RAIZ / "logs"
 PASTA_SAIDA = RAIZ / "saida"
-PASTA_REFERENCIAS = RAIZ / "referencias"
 
 ARQUIVO_B3 = PASTA_DADOS / "b3.csv"
 ARQUIVO_EUA = PASTA_DADOS / "eua.csv"
 ARQUIVO_ATENCAO = PASTA_DADOS / "atencao_hist.csv"
 ARQUIVO_CANDIDATAS = PASTA_DADOS / "candidatas.csv"
-ARQUIVO_NOMES_B3 = PASTA_DADOS / "nomes_b3.csv"
-ARQUIVO_NOMES_EUA = PASTA_DADOS / "nomes_eua.csv"
-ARQUIVO_EMPRESAS_B3 = PASTA_REFERENCIAS / "empresas_b3.csv"
-ARQUIVO_EMPRESAS_EUA = PASTA_REFERENCIAS / "empresas_nyse_nasdaq.csv"
 ARQUIVO_LOG = PASTA_LOGS / "radar.log"
 
 MAX_ACOES_NOTICIAS = 60

@@ -18,8 +18,6 @@ from .config import (
     ARQUIVO_CANDIDATAS,
     ARQUIVO_EUA,
     ARQUIVO_LOG,
-    ARQUIVO_NOMES_B3,
-    ARQUIVO_NOMES_EUA,
     PASTA_DADOS,
     PASTA_LOGS,
     PASTA_SAIDA,
@@ -90,11 +88,10 @@ def executar(limite_eua: int | None = None) -> Path:
     python = sys.executable
     if limite_eua is not None:
         teste = PASTA_DADOS / "eua_teste.csv"
-        nomes_teste = PASTA_DADOS / "nomes_eua_teste.csv"
         logger.info("Modo de teste: coletando até %d símbolos sem atualizar arquivos de produção.", limite_eua)
         executar_comando(logger, "teste de coleta dos EUA", [
             python, str(RAIZ / "eua.py"), "--limite", str(limite_eua),
-            "--saida", str(teste), "--nomes-saida", str(nomes_teste),
+            "--saida", str(teste),
         ])
         logger.info("Coleta de teste salva em %s; nenhuma watchlist foi alterada.", teste)
         return teste
@@ -105,11 +102,11 @@ def executar(limite_eua: int | None = None) -> Path:
         logger.info("Iniciando Radar de pesquisa; nenhuma recomendação é produzida.")
         etapas_com_erro: list[str] = []
         try:
-            b3.baixar_historico(ARQUIVO_B3, ARQUIVO_NOMES_B3)
+            b3.baixar_historico(ARQUIVO_B3)
         except Exception:
             etapas_com_erro.append("B3")
             logger.exception("Falha ao atualizar a B3; vou tentar continuar com o histórico existente.")
-        comando_eua = [python, str(RAIZ / "eua.py"), "--saida", str(ARQUIVO_EUA), "--nomes-saida", str(ARQUIVO_NOMES_EUA)]
+        comando_eua = [python, str(RAIZ / "eua.py"), "--saida", str(ARQUIVO_EUA)]
         try:
             executar_comando(logger, "coleta dos EUA", comando_eua)
         except RuntimeError:
