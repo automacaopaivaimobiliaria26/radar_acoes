@@ -56,7 +56,7 @@ def ler_watchlist(caminho: Path) -> dict[str, object]:
         if not celulas or all(re.fullmatch(r":?-{2,}:?", parte) for parte in celulas):
             continue
 
-        # Também aceita as watchlists antigas, cujo cabeçalho não tinha empresa/descrição.
+        # Mantém compatibilidade com arquivos antigos que não tinham cabeçalho.
         if not colunas:
             colunas = {"ticker": 0, "nota": 1, "volume relativo": 2, "retorno 5 pregões": 3,
                        "notícias 24h": 4, "motivo": 5}
@@ -80,9 +80,6 @@ def ler_watchlist(caminho: Path) -> dict[str, object]:
         assert isinstance(acoes, list)
         acoes.append({
             "ticker": campo("ticker"),
-            "nome": campo("empresa", campo("ticker")),
-            "bolsa": campo("bolsa", "B3" if mercado_atual == "B3" else "Não informada"),
-            "descricao": campo("descrição"),
             "nota": nota,
             "parcial": "parcial" in campo("nota").casefold() or "nota parcial" in motivo.casefold(),
             "volume_relativo": volume,
@@ -160,15 +157,12 @@ def html_dashboard(base_path: str) -> str:
     .table-heading {{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:21px 22px 4px }}
     .market-tag {{ padding:5px 9px; border-radius:999px; background:var(--teal-light); color:#126b72; font-size:11px; font-weight:850; letter-spacing:.08em }}
     .table-wrap {{ overflow:auto; padding:0 14px 14px }}
-    table {{ width:100%; border-collapse:collapse; min-width:900px; font-size:13px }}
+    table {{ width:100%; border-collapse:collapse; min-width:760px; font-size:13px }}
     th {{ padding:12px 10px; border-bottom:1px solid var(--line); color:var(--muted); text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap }}
     td {{ padding:13px 10px; border-bottom:1px solid #edf1f4; vertical-align:top }}
     tbody tr:hover {{ background:#f8fbfc }}
     td.num, th.num {{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums }}
     .ticker {{ font-weight:850; color:var(--navy) }}
-    .company {{ min-width:160px; font-weight:700; color:var(--navy) }}
-    .exchange {{ min-width:150px; color:#526675 }}
-    .description {{ min-width:240px; max-width:360px; color:#526675; line-height:1.45 }}
     .score {{ font-weight:850; color:#126d70 }}
     .badge {{ display:inline-block; margin-left:5px; padding:2px 6px; border-radius:999px; background:#fff2dc; color:#8a5c17; font-size:10px; font-weight:800; vertical-align:middle }}
     .positive {{ color:var(--green); font-weight:750 }} .negative {{ color:var(--red); font-weight:750 }}
@@ -202,8 +196,8 @@ function marketChart(name,rows){{
   return `<article class="panel"><h2>${{name}} · maiores notas</h2><p class="panel-sub">Top 5 da watchlist selecionada</p>${{top.length?top.map(x=>`<div class="bar-row"><span class="bar-ticker">${{safe(x.ticker)}}</span><div class="bar-track"><div class="bar" style="width:${{Math.max(3,x.nota/max*100)}}%"></div></div><span class="bar-value">${{fmt(x.nota)}}</span></div>`).join(''):'<div class="empty">Sem ações neste mercado.</div>'}}</article>`
 }}
 function marketTable(name,rows){{
- const body=rows.map((x,i)=>`<tr><td class="num">${{i+1}}</td><td class="ticker">${{safe(x.ticker)}}</td><td class="company">${{safe(x.nome)}}</td><td class="exchange">${{safe(x.bolsa||'Não informada')}}</td><td class="description">${{safe(x.descricao||'Descrição indisponível')}}</td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`).join('');
- return `<article class="panel table-panel"><div class="table-heading"><div><h2>${{name}}</h2><p class="panel-sub">${{rows.length}} ações na watchlist</p></div><span class="market-tag">${{name==='B3'?'BRASIL':'ESTADOS UNIDOS'}}</span></div>${{rows.length?`<div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Ticker</th><th>Empresa</th><th>Bolsa</th><th>Descrição</th><th class="num">Nota</th><th class="num">Vol. relativo</th><th class="num">Ret. 5 pregões</th><th class="num">Ret. 20 pregões</th><th class="num">Notícias 24h</th><th>Motivo</th></tr></thead><tbody>${{body}}</tbody></table></div>`:'<div class="empty">Nenhuma ação nesta seção.</div>'}}</article>`
+ const body=rows.map((x,i)=>`<tr><td class="num">${{i+1}}</td><td class="ticker">${{safe(x.ticker)}}</td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`).join('');
+ return `<article class="panel table-panel"><div class="table-heading"><div><h2>${{name}}</h2><p class="panel-sub">${{rows.length}} ações na watchlist</p></div><span class="market-tag">${{name==='B3'?'BRASIL':'ESTADOS UNIDOS'}}</span></div>${{rows.length?`<div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Ticker</th><th class="num">Nota</th><th class="num">Vol. relativo</th><th class="num">Ret. 5 pregões</th><th class="num">Ret. 20 pregões</th><th class="num">Notícias 24h</th><th>Motivo</th></tr></thead><tbody>${{body}}</tbody></table></div>`:'<div class="empty">Nenhuma ação nesta seção.</div>'}}</article>`
 }}
 function render(data,date){{
  const b3=data.mercados.B3.acoes,eua=data.mercados.EUA.acoes;

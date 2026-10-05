@@ -50,7 +50,7 @@ class TestRadar(unittest.TestCase):
             return RespostaFalsa(arquivos[chave])
 
         with patch.object(eua.urllib.request, "urlopen", side_effect=resposta_falsa):
-            selecionadas = eua.acoes_com_nomes()
+            selecionadas = eua.simbolos_comuns()
         self.assertEqual(set(selecionadas), {"AAA", "BBB", "CCC"})
 
     def test_coleta_eua_processa_lote_simulado(self):
@@ -80,12 +80,10 @@ class TestRadar(unittest.TestCase):
         with zipfile.ZipFile(conteudo_zip, "w") as arquivo:
             arquivo.writestr("COTAHIST.TXT", bytes(linha))
 
-        nomes = {}
         with patch.object(b3.urllib.request, "urlopen", return_value=RespostaFalsa(conteudo_zip.getvalue())):
-            dados = b3.baixar_pregao(date(2026, 10, 2), nomes)
+            dados = b3.baixar_pregao(date(2026, 10, 2))
 
         self.assertEqual(dados, [["2026-10-02", "PETR4", 123.45, 1000, 1234.5]])
-        self.assertEqual(nomes["PETR4"], "PETROBRAS")
 
     def test_rss_conta_titulos_unicos_das_ultimas_24_horas(self):
         agora = datetime(2026, 10, 4, 20, tzinfo=timezone.utc)
@@ -100,7 +98,7 @@ class TestRadar(unittest.TestCase):
             for titulo, instante in publicacoes
         )
         xml = f"<rss><channel>{itens}</channel></rss>".encode()
-        candidata = {"mercado": "B3", "ticker": "ABC", "nome": "Alpha Corp"}
+        candidata = {"mercado": "B3", "ticker": "ABC"}
         with patch.object(atencao.urllib.request, "urlopen", return_value=RespostaFalsa(xml)):
             total = atencao.consulta_rss(candidata, agora)
         self.assertEqual(total, 1)

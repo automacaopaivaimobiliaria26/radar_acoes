@@ -8,16 +8,14 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 .
 ├── radar/
 │   ├── config.py       # caminhos, limites e pesos compartilhados
-│   ├── b3.py           # baixa COTAHIST e grava b3.csv e nomes_b3.csv
+│   ├── b3.py           # baixa COTAHIST e grava somente b3.csv
 │   ├── eua.py          # interface para o coletor de preços dos EUA
 │   ├── noticias.py     # interface para a coleta RSS e histórico
 │   ├── candidatas.py   # seleciona até 60 maiores volumes relativos
 │   ├── calculo.py      # interface para indicadores e percentis
 │   ├── watchlist.py    # interface para o relatório Markdown
 │   └── main.py         # orquestra a sequência completa
-├── referencias/        # cadastros versionados de empresas e bolsas
-│   ├── empresas_b3.csv
-│   └── empresas_nyse_nasdaq.csv
+├── referencias/        # CSVs antigos, mantidos no repositório e não carregados pelo Radar
 ├── dados/              # arquivos CSV gerados durante as coletas
 ├── logs/               # radar.log
 ├── saida/              # watchlists Markdown
@@ -34,7 +32,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 └── requirements.txt
 ```
 
-Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). O cadastro de empresa, a descrição e a bolsa vêm exclusivamente dos arquivos versionados em `referencias/empresas_b3.csv` e `referencias/empresas_nyse_nasdaq.csv`; o Radar não consulta provedores externos para esses metadados.
+Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). O Radar não coleta nem grava nome, descrição ou bolsa das empresas. As notícias são consultadas somente pelo ticker. Os CSVs antigos em `referencias/` permanecem no Git, mas não são lidos pelo aplicativo.
 
 ## Instalação no Ubuntu
 
@@ -46,7 +44,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar. O coletor repete lotes e só substitui o CSV de produção quando a coleta termina com dados; se um lote falhar, preserva o CSV anterior. A lista do Nasdaq Trader é filtrada para Nasdaq, NYSE e NYSE American, removendo ETFs, títulos de teste e instrumentos que não pareçam ações comuns.
+O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar. O coletor repete lotes e só substitui o CSV de produção quando a coleta termina com dados; se um lote falhar, preserva o CSV anterior. A lista do Nasdaq Trader é filtrada para Nasdaq, NYSE e NYSE American, removendo ETFs, títulos de teste e instrumentos que não pareçam ações comuns. O campo de nome de segurança é usado somente para esse filtro de tipo de instrumento; o nome empresarial não é coletado nem gravado.
 
 ## Primeira execução
 
@@ -54,7 +52,7 @@ Faça primeiro uma coleta reduzida dos EUA:
 
 ```bash
 source .venv/bin/activate
-python eua.py --limite 20 --saida dados/eua_teste.csv --nomes-saida dados/nomes_eua_teste.csv
+python eua.py --limite 20 --saida dados/eua_teste.csv
 ```
 
 Confira se o CSV tem cabeçalho, datas e volumes plausíveis. Para rodar o fluxo completo manualmente:
@@ -73,7 +71,7 @@ O comando executa estas etapas em sequência:
 
 Se a atualização de um mercado falhar, o Radar tenta gerar uma watchlist com o histórico daquele mercado já existente e o mercado que conseguiu atualizar. Se a etapa de notícias falhar, gera a watchlist com os componentes disponíveis. A execução fica registrada como incompleta (código diferente de zero e sem atualizar `ultimo_sucesso.txt`); confira o log antes de considerar a saída completa. A ausência de um dos CSVs de cotações omite esse mercado em vez de interromper o outro.
 
-`python main.py --limite-eua 20` executa apenas uma coleta de teste dos EUA e grava em `dados/eua_teste.csv` e `dados/nomes_eua_teste.csv`. Não atualiza os dados de produção nem gera watchlist. O mesmo vale para `python eua.py --limite 20`; para outro destino de teste, informe `--saida` e `--nomes-saida`. Uma coleta com limite não pode sobrescrever `dados/eua.csv` ou `dados/nomes_eua.csv`.
+`python main.py --limite-eua 20` executa apenas uma coleta de teste dos EUA e grava em `dados/eua_teste.csv`. Não atualiza os dados de produção nem gera watchlist. O mesmo vale para `python eua.py --limite 20`; para outro destino de teste, informe `--saida`. Uma coleta com limite não pode sobrescrever `dados/eua.csv`.
 
 Rode a suíte local antes de publicar alterações:
 
@@ -92,7 +90,7 @@ nota = 100 x (0,40 x percentil_volume
            + 0,15 x percentil_atencao)
 ```
 
-Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta ticker, nome empresarial e descrição curta dos arquivos em `referencias/`. A watchlist inclui ticker, empresa, bolsa e descrição. Se um ticker não estiver no cadastro de referência, o Radar usa o ticker como nome e informa “Não informada” para a bolsa; não recorre a outra fonte de metadados. Para atualizar esses cadastros, substitua os CSVs em `referencias/` e publique uma nova versão do aplicativo. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
+Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta somente o ticker. A watchlist contém ticker, nota, volume relativo, retorno de 5 pregões, notícias das últimas 24 horas e motivo. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
 
 ## Agendamento no VPS
 
@@ -167,7 +165,7 @@ Confira a agenda com `crontab -l` e os registros com `tail -n 100 /opt/radar/log
 ## Limites e revisão
 
 - O COTAHIST é filtrado pelos códigos de mercado e lote padrão usados no roteiro de referência. Dados ausentes, formato alterado ou desdobramentos podem exigir revisão.
-- O universo dos EUA deriva das listas de símbolos da Nasdaq Trader; a classificação de ações comuns se baseia nos campos e nomes dessas listas.
+- O universo dos EUA deriva das listas de símbolos da Nasdaq Trader; o nome da listagem é usado somente para excluir tipos de instrumento que não sejam ações comuns.
 - RSS pode conter resultados irrelevantes, duplicados ou incompletos; a contagem é uma aproximação de atenção.
 - Pesos e percentis são parâmetros de pesquisa, não evidência de desempenho futuro.
 - Verifique os CSVs e as primeiras watchlists antes de confiar nos resultados. A lista não é recomendação de investimento.
