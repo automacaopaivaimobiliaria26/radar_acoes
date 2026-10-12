@@ -367,7 +367,7 @@ function render(data,date){{
  atualizarTelaGrafico();
 }}
 function simboloTradingView(mercado,acao){{
- const ticker=String(acao.ticker||'').trim().toUpperCase().replace(/\.SA$/,'');
+ const ticker=String(acao.ticker||'').trim().toUpperCase().replace(/\\.SA$/,'');
  if(!/^[A-Z0-9][A-Z0-9._-]{{0,19}}$/.test(ticker))return null;
  if(mercado==='B3')return `BMFBOVESPA:${{ticker}}`;
  const bolsa=String(acao.bolsa||'').trim().toLocaleLowerCase('pt-BR');
@@ -385,7 +385,7 @@ function carregarTradingView(){{
    script.onload=resolve;script.onerror=()=>reject(new Error('O widget externo não pôde ser carregado.'));
    document.head.append(script);
   }}).then(()=>customElements.whenDefined('tv-mini-chart'));
- }
+ }}
  return promessaTradingView;
 }}
 function adicionarLinkExterno(texto,url){{
@@ -407,7 +407,7 @@ function atualizarTelaGrafico(){{
  const acao=dadosAtuais?.mercados?.[mercado]?.acoes?.find(item=>item.ticker===ticker);
  $('#chartMarket').textContent=mercado==='B3'?'B3':'ESTADOS UNIDOS';
  $('#chartTitle').textContent=ticker||'Gráfico do ativo';
- $('#chartCompany').textContent=acao?.empresa&&acao.empresa!=='—'?acao.empresa:`${{mercado==='B3'?'B3':'EUA'}} · ${ownerDate(data)}`;
+ $('#chartCompany').textContent=acao?.empresa&&acao.empresa!=='—'?acao.empresa:`${{mercado==='B3'?'B3':'EUA'}} · ${{ownerDate(data)}}`;
  const area=$('#chartWidget');area.replaceChildren();
  const sequencia=++sequenciaGrafico;
  if(!acao){{$('#chartStatus').textContent='Esse ticker não está disponível na watchlist selecionada.';return;}}
