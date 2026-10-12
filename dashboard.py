@@ -301,13 +301,14 @@ def html_dashboard(base_path: str) -> str:
     .chart-back {{ flex:0 0 auto; border:1px solid var(--line); border-radius:10px; padding:10px 14px; background:#fff; color:var(--navy); font:inherit; font-weight:750; cursor:pointer }}
     .chart-back:hover {{ border-color:var(--teal); color:var(--teal) }}
     .chart-status {{ min-height:22px; margin:0 0 10px; color:var(--muted); font-size:13px }}
-    .tv-chart-frame {{ width:100%; height:min(68vh,650px); min-height:380px; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:#fff }}
-    .tv-chart-frame tv-mini-chart {{ display:block; width:100%; height:100% }}
+    .tv-chart-frame {{ width:100%; height:min(78vh,800px); min-height:500px; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:#fff }}
+    .tv-chart-frame .tradingview-widget-container, .tv-chart-frame .tradingview-widget-container__widget {{ width:100%; height:100% }}
+    .tv-chart-frame iframe {{ display:block; width:100% !important; height:100% !important }}
     .chart-attribution {{ margin:9px 2px 0; color:var(--muted); font-size:11px }}
     footer {{ display:flex; justify-content:space-between; gap:16px; margin-top:22px; color:var(--muted); font-size:12px }}
     .loading {{ opacity:.55; pointer-events:none }}
     @media(max-width:900px) {{ .cards {{ grid-template-columns:repeat(2,minmax(0,1fr)) }} .section-grid {{ grid-template-columns:1fr }} }}
-    @media(max-width:560px) {{ .shell {{ padding:14px 12px 32px }} header {{ padding:23px 20px; border-radius:18px }} .header-mark {{ width:48px;height:48px;font-size:23px }} .cards {{ gap:9px }} .card {{ min-height:108px;padding:14px }} .card-value {{ font-size:25px }} .panel {{ padding:17px }} .table-panel {{ padding:0 }} .table-heading {{ padding:18px 16px 4px }} .chart-heading {{ align-items:flex-start; flex-direction:column }} .chart-back {{ width:100% }} .tv-chart-frame {{ height:58vh; min-height:340px }} footer {{ flex-direction:column }} }}
+    @media(max-width:560px) {{ .shell {{ padding:14px 12px 32px }} header {{ padding:23px 20px; border-radius:18px }} .header-mark {{ width:48px;height:48px;font-size:23px }} .cards {{ gap:9px }} .card {{ min-height:108px;padding:14px }} .card-value {{ font-size:25px }} .panel {{ padding:17px }} .table-panel {{ padding:0 }} .table-heading {{ padding:18px 16px 4px }} .chart-heading {{ align-items:flex-start; flex-direction:column }} .chart-back {{ width:100% }} .tv-chart-frame {{ height:75vh; min-height:500px }} footer {{ flex-direction:column }} }}
   </style>
 </head>
 <body>
@@ -332,7 +333,7 @@ const $=s=>document.querySelector(s);
 const fmt=(n,d=1)=>n==null?'—':new Intl.NumberFormat('pt-BR',{{minimumFractionDigits:d,maximumFractionDigits:d}}).format(n);
 const pct=n=>n==null?'—':`${{n>=0?'+':''}}${{fmt(n*100,2)}}%`;
 const safe=x=>String(x??'—').replace(/[&<>"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
-let dadosAtuais=null,dataAtual=null,promessaTradingView=null,sequenciaGrafico=0;
+let dadosAtuais=null,dataAtual=null,sequenciaGrafico=0;
 function parametrosGrafico(){{
  if(!location.hash.startsWith('#grafico?'))return null;
  return new URLSearchParams(location.hash.slice(location.hash.indexOf('?')+1));
@@ -376,18 +377,6 @@ function simboloTradingView(mercado,acao){{
  if(bolsa.includes('nyse'))return `NYSE:${{ticker}}`;
  return null;
 }}
-function carregarTradingView(){{
- if(customElements.get('tv-mini-chart'))return Promise.resolve();
- if(!promessaTradingView){{
-  promessaTradingView=new Promise((resolve,reject)=>{{
-   const script=document.createElement('script');script.type='module';
-   script.src='https://widgets.tradingview-widget.com/w/en/tv-mini-chart.js';
-   script.onload=resolve;script.onerror=()=>reject(new Error('O widget externo não pôde ser carregado.'));
-   document.head.append(script);
-  }}).then(()=>customElements.whenDefined('tv-mini-chart'));
- }}
- return promessaTradingView;
-}}
 function adicionarLinkExterno(texto,url){{
  const link=document.createElement('a');link.href=url;link.target='_blank';
  link.rel='noopener noreferrer';link.textContent=texto;$('#chartStatus').append(' ',link);
@@ -418,17 +407,56 @@ function atualizarTelaGrafico(){{
   return;
  }}
  $('#chartStatus').textContent=`Carregando gráfico de ${{simbolo}}…`;
- carregarTradingView().then(()=>{{
-  if(sequencia!==sequenciaGrafico||!parametrosGrafico())return;
-  const widget=document.createElement('tv-mini-chart');
-  widget.setAttribute('symbol',simbolo);widget.setAttribute('theme','light');
-  area.replaceChildren(widget);$('#chartStatus').textContent='';
- }}).catch(erro=>{{
+ const container=document.createElement('div');
+ container.className='tradingview-widget-container';
+ const quadro=document.createElement('div');
+ quadro.className='tradingview-widget-container__widget';
+ const credito=document.createElement('div');
+ credito.className='tradingview-widget-copyright';
+ const link=document.createElement('a');
+ link.href=`https://br.tradingview.com/symbols/${{encodeURIComponent(simbolo.replace(':','-'))}}/`;
+ link.rel='noopener nofollow';link.target='_blank';
+ const texto=document.createElement('span');
+ texto.className='blue-text';texto.textContent=`Gráfico de ações de ${{simbolo}}`;
+ link.append(texto);credito.append(link,document.createTextNode(' por TradingView'));
+ const widget=document.createElement('script');
+ widget.type='text/javascript';widget.async=true;
+ widget.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+ widget.textContent=JSON.stringify({{
+  allow_symbol_change:true,
+  calendar:false,
+  details:false,
+  hide_side_toolbar:true,
+  hide_top_toolbar:false,
+  hide_legend:false,
+  hide_volume:false,
+  hotlist:false,
+  interval:'D',
+  locale:'br',
+  save_image:true,
+  style:'1',
+  symbol:simbolo,
+  theme:'light',
+  timezone:'America/Sao_Paulo',
+  backgroundColor:'#ffffff',
+  gridColor:'rgba(46, 46, 46, 0.2)',
+  watchlist:[],
+  withdateranges:false,
+  compareSymbols:[],
+  support_host:'https://www.tradingview.com',
+  studies:['STD;24h%Volume'],
+  autosize:true
+ }});
+ widget.onload=()=>{{if(sequencia===sequenciaGrafico)$('#chartStatus').textContent='';}};
+ widget.onerror=()=>{{
   if(sequencia===sequenciaGrafico){{
-   $('#chartStatus').textContent=erro.message;
+   $('#chartStatus').textContent='O widget externo não pôde ser carregado.';
    adicionarLinkExterno('Abrir gráfico no TradingView.',`https://www.tradingview.com/chart/?symbol=${{encodeURIComponent(simbolo)}}`);
   }}
- }});
+ }};
+ container.append(quadro,credito);
+ area.replaceChildren(container);
+ container.append(widget);
 }}
 function ownerDate(data){{return data||'data selecionada';}}
 $('#chartBack').addEventListener('click',()=>{{location.hash='';}});
