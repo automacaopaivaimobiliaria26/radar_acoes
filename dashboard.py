@@ -247,6 +247,7 @@ def html_dashboard(base_path: str) -> str:
   <style>
     :root {{ color-scheme: light; --ink:#152a3b; --muted:#6b7d8c; --line:#e3eaf0; --paper:#f4f7fa; --white:#fff; --navy:#102b40; --teal:#087f8c; --teal-light:#e3f5f4; --orange:#e89a43; --green:#247a5a; --red:#bb5360; --shadow:0 12px 32px rgba(24,48,68,.07); }}
     * {{ box-sizing:border-box }}
+    [hidden] {{ display:none !important }}
     body {{ margin:0; background:var(--paper); color:var(--ink); font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif }}
     .shell {{ max-width:1440px; margin:auto; padding:30px clamp(16px,4vw,56px) 56px }}
     header {{ display:flex; justify-content:space-between; align-items:center; gap:24px; color:#fff; background:linear-gradient(120deg,#102b40,#17485b); border-radius:24px; padding:30px 34px; box-shadow:var(--shadow) }}
@@ -283,6 +284,8 @@ def html_dashboard(base_path: str) -> str:
     tbody tr:hover {{ background:#f8fbfc }}
     td.num, th.num {{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums }}
     .ticker {{ font-weight:850; color:var(--navy) }}
+    .ticker-link {{ color:inherit; text-decoration:underline; text-decoration-color:#9ab9c5; text-underline-offset:3px; cursor:pointer }}
+    .ticker-link:hover {{ color:var(--teal); text-decoration-color:currentColor }}
     .company-cell {{ min-width:230px; max-width:320px }}
     .company-name {{ font-weight:800; color:var(--navy) }}
     .company-details {{ margin-top:3px; color:var(--muted); font-size:12px; line-height:1.35; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden }}
@@ -291,17 +294,33 @@ def html_dashboard(base_path: str) -> str:
     .positive {{ color:var(--green); font-weight:750 }} .negative {{ color:var(--red); font-weight:750 }}
     .reason {{ min-width:280px; color:#526675; line-height:1.45 }}
     .empty {{ padding:24px; color:var(--muted); text-align:center }}
+    .chart-view {{ margin:0 0 18px }}
+    .chart-heading {{ display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:14px }}
+    .chart-heading h2 {{ margin:7px 0 2px; font-size:clamp(21px,3vw,29px); letter-spacing:-.03em }}
+    .chart-company {{ margin:0; color:var(--muted); font-size:14px }}
+    .chart-back {{ flex:0 0 auto; border:1px solid var(--line); border-radius:10px; padding:10px 14px; background:#fff; color:var(--navy); font:inherit; font-weight:750; cursor:pointer }}
+    .chart-back:hover {{ border-color:var(--teal); color:var(--teal) }}
+    .chart-status {{ min-height:22px; margin:0 0 10px; color:var(--muted); font-size:13px }}
+    .tv-chart-frame {{ width:100%; height:min(68vh,650px); min-height:380px; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:#fff }}
+    .tv-chart-frame tv-mini-chart {{ display:block; width:100%; height:100% }}
+    .chart-attribution {{ margin:9px 2px 0; color:var(--muted); font-size:11px }}
     footer {{ display:flex; justify-content:space-between; gap:16px; margin-top:22px; color:var(--muted); font-size:12px }}
     .loading {{ opacity:.55; pointer-events:none }}
     @media(max-width:900px) {{ .cards {{ grid-template-columns:repeat(2,minmax(0,1fr)) }} .section-grid {{ grid-template-columns:1fr }} }}
-    @media(max-width:560px) {{ .shell {{ padding:14px 12px 32px }} header {{ padding:23px 20px; border-radius:18px }} .header-mark {{ width:48px;height:48px;font-size:23px }} .cards {{ gap:9px }} .card {{ min-height:108px;padding:14px }} .card-value {{ font-size:25px }} .panel {{ padding:17px }} .table-panel {{ padding:0 }} .table-heading {{ padding:18px 16px 4px }} footer {{ flex-direction:column }} }}
+    @media(max-width:560px) {{ .shell {{ padding:14px 12px 32px }} header {{ padding:23px 20px; border-radius:18px }} .header-mark {{ width:48px;height:48px;font-size:23px }} .cards {{ gap:9px }} .card {{ min-height:108px;padding:14px }} .card-value {{ font-size:25px }} .panel {{ padding:17px }} .table-panel {{ padding:0 }} .table-heading {{ padding:18px 16px 4px }} .chart-heading {{ align-items:flex-start; flex-direction:column }} .chart-back {{ width:100% }} .tv-chart-frame {{ height:58vh; min-height:340px }} footer {{ flex-direction:column }} }}
   </style>
 </head>
 <body>
 <main class="shell" id="app">
   <header><div><div class="eyebrow">Painel de pesquisa</div><h1>Radar de Ações</h1><p>Volume, momento e atenção em um só lugar.</p></div><div class="header-mark" aria-hidden="true">⌁</div></header>
-  <div class="toolbar"><label>Data da watchlist<select id="dateSelect" aria-label="Selecione o dia da watchlist"></select></label><div class="asof" id="asof">Carregando arquivos…</div></div>
+  <div class="toolbar" id="watchlistToolbar"><label>Data da watchlist<select id="dateSelect" aria-label="Selecione o dia da watchlist"></select></label><div class="asof" id="asof">Carregando arquivos…</div></div>
   <div class="notice">Ferramenta de estudo. Não é recomendação de investimento e não executa operações. Notas marcadas como parciais usam dados incompletos.</div>
+  <section class="panel chart-view" id="chartView" hidden aria-labelledby="chartTitle">
+    <div class="chart-heading"><div><span class="market-tag" id="chartMarket"></span><h2 id="chartTitle">Gráfico do ativo</h2><p class="chart-company" id="chartCompany"></p></div><button class="chart-back" id="chartBack" type="button">← Voltar à watchlist</button></div>
+    <p class="chart-status" id="chartStatus" role="status" aria-live="polite"></p>
+    <div class="tv-chart-frame" id="chartWidget"></div>
+    <p class="chart-attribution">Gráfico fornecido pelo TradingView. A disponibilidade e o atraso das cotações dependem da bolsa e dos dados oferecidos pelo TradingView.</p>
+  </section>
   <section class="cards" id="cards"></section>
   <section class="section-grid" id="charts"></section>
   <section id="tables"></section>
@@ -313,29 +332,107 @@ const $=s=>document.querySelector(s);
 const fmt=(n,d=1)=>n==null?'—':new Intl.NumberFormat('pt-BR',{{minimumFractionDigits:d,maximumFractionDigits:d}}).format(n);
 const pct=n=>n==null?'—':`${{n>=0?'+':''}}${{fmt(n*100,2)}}%`;
 const safe=x=>String(x??'—').replace(/[&<>"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
+let dadosAtuais=null,dataAtual=null,promessaTradingView=null,sequenciaGrafico=0;
+function parametrosGrafico(){{
+ if(!location.hash.startsWith('#grafico?'))return null;
+ return new URLSearchParams(location.hash.slice(location.hash.indexOf('?')+1));
+}}
+function linkTicker(acao,mercado){{
+ const parametros=new URLSearchParams({{mercado,ticker:acao.ticker,data:dataAtual||''}});
+ return `<a class="ticker-link" href="${{safe(`#grafico?${{parametros.toString()}}`)}}" title="Abrir gráfico de ${{safe(acao.ticker)}}">${{safe(acao.ticker)}}</a>`;
+}}
 function metricCard(label,value,detail){{return `<article class="card"><div class="card-label">${{label}}</div><div class="card-value">${{value}}</div><div class="card-detail">${{detail}}</div></article>`}}
-function marketChart(name,rows){{
+function marketChart(name,rows,mercado){{
   const top=rows.slice(0,5); const max=Math.max(1,...top.map(x=>x.nota));
-  return `<article class="panel"><h2>${{name}} · maiores notas</h2><p class="panel-sub">Top 5 da watchlist selecionada</p>${{top.length?top.map(x=>`<div class="bar-row"><span class="bar-ticker">${{safe(x.ticker)}}</span><div class="bar-track"><div class="bar" style="width:${{Math.max(3,x.nota/max*100)}}%"></div></div><span class="bar-value">${{fmt(x.nota)}}</span></div>`).join(''):'<div class="empty">Sem ações neste mercado.</div>'}}</article>`
+  return `<article class="panel"><h2>${{name}} · maiores notas</h2><p class="panel-sub">Top 5 da watchlist selecionada · clique no ticker para abrir o gráfico</p>${{top.length?top.map(x=>`<div class="bar-row"><span class="bar-ticker">${{linkTicker(x,mercado)}}</span><div class="bar-track"><div class="bar" style="width:${{Math.max(3,x.nota/max*100)}}%"></div></div><span class="bar-value">${{fmt(x.nota)}}</span></div>`).join(''):'<div class="empty">Sem ações neste mercado.</div>'}}</article>`
 }}
 function marketTable(name,rows){{
- const body=rows.map((x,i)=>{{const detalhes=[x.bolsa,x.descricao].filter(v=>v&&v!=='—').map(safe).join(' · ')||'—';return `<tr><td class="num">${{i+1}}</td><td class="ticker">${{safe(x.ticker)}}</td><td class="company-cell"><div class="company-name">${{safe(x.empresa||'—')}}</div><div class="company-details">${{detalhes}}</div></td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`}}).join('');
+ const body=rows.map((x,i)=>{{const detalhes=[x.bolsa,x.descricao].filter(v=>v&&v!=='—').map(safe).join(' · ')||'—';return `<tr><td class="num">${{i+1}}</td><td class="ticker">${{linkTicker(x,name==='B3'?'B3':'EUA')}}</td><td class="company-cell"><div class="company-name">${{safe(x.empresa||'—')}}</div><div class="company-details">${{detalhes}}</div></td><td class="num score">${{fmt(x.nota)}}${{x.parcial?'<span class="badge">parcial</span>':''}}</td><td class="num">${{fmt(x.volume_relativo,2)}}x</td><td class="num ${{x.retorno_5>=0?'positive':'negative'}}">${{pct(x.retorno_5)}}</td><td class="num ${{x.retorno_20==null?'':x.retorno_20>=0?'positive':'negative'}}">${{pct(x.retorno_20)}}</td><td class="num">${{x.noticias==null?'—':safe(x.noticias)}}</td><td class="reason">${{safe(x.motivo)}}</td></tr>`}}).join('');
  return `<article class="panel table-panel"><div class="table-heading"><div><h2>${{name}}</h2><p class="panel-sub">${{rows.length}} ações na watchlist</p></div><span class="market-tag">${{name==='B3'?'BRASIL':'ESTADOS UNIDOS'}}</span></div>${{rows.length?`<div class="table-wrap"><table><thead><tr><th class="num">#</th><th>Ticker</th><th>Empresa</th><th class="num">Nota</th><th class="num">Vol. relativo</th><th class="num">Ret. 5 pregões</th><th class="num">Ret. 20 pregões</th><th class="num">Notícias 24h</th><th>Motivo</th></tr></thead><tbody>${{body}}</tbody></table></div>`:'<div class="empty">Nenhuma ação nesta seção.</div>'}}</article>`
 }}
 function render(data,date){{
+ dadosAtuais=data;dataAtual=date;
  const b3=data.mercados.B3.acoes,eua=data.mercados.EUA.acoes;
  const topB3=b3[0],topEua=eua[0];
  $('#asof').textContent=`Referência dos dados: B3 ${{data.mercados.B3.referencia||date}} · EUA ${{data.mercados.EUA.referencia||date}}`;
  $('#cards').innerHTML=[
   metricCard('Ações B3',b3.length,'na watchlist desta data'),
   metricCard('Ações EUA',eua.length,'na watchlist desta data'),
-  metricCard('Maior nota · B3',topB3?fmt(topB3.nota):'—',topB3?`${{safe(topB3.ticker)}} · volume ${{fmt(topB3.volume_relativo,2)}}x`:'sem dados'),
-  metricCard('Maior nota · EUA',topEua?fmt(topEua.nota):'—',topEua?`${{safe(topEua.ticker)}} · volume ${{fmt(topEua.volume_relativo,2)}}x`:'sem dados'),
+  metricCard('Maior nota · B3',topB3?fmt(topB3.nota):'—',topB3?`${{linkTicker(topB3,'B3')}} · volume ${{fmt(topB3.volume_relativo,2)}}x`:'sem dados'),
+  metricCard('Maior nota · EUA',topEua?fmt(topEua.nota):'—',topEua?`${{linkTicker(topEua,'EUA')}} · volume ${{fmt(topEua.volume_relativo,2)}}x`:'sem dados'),
  ].join('');
- $('#charts').innerHTML=marketChart('B3',b3)+marketChart('EUA',eua);
+ $('#charts').innerHTML=marketChart('B3',b3,'B3')+marketChart('EUA',eua,'EUA');
  $('#tables').innerHTML=marketTable('B3',b3)+marketTable('EUA',eua);
  $('#updated').textContent=`Arquivo: watchlist_${{date}}.md`;
+ atualizarTelaGrafico();
 }}
+function simboloTradingView(mercado,acao){{
+ const ticker=String(acao.ticker||'').trim().toUpperCase().replace(/\.SA$/,'');
+ if(!/^[A-Z0-9][A-Z0-9._-]{{0,19}}$/.test(ticker))return null;
+ if(mercado==='B3')return `BMFBOVESPA:${{ticker}}`;
+ const bolsa=String(acao.bolsa||'').trim().toLocaleLowerCase('pt-BR');
+ if(bolsa.includes('nasdaq'))return `NASDAQ:${{ticker}}`;
+ if(bolsa.includes('nyse american')||bolsa.includes('amex'))return `AMEX:${{ticker}}`;
+ if(bolsa.includes('nyse'))return `NYSE:${{ticker}}`;
+ return null;
+}}
+function carregarTradingView(){{
+ if(customElements.get('tv-mini-chart'))return Promise.resolve();
+ if(!promessaTradingView){{
+  promessaTradingView=new Promise((resolve,reject)=>{{
+   const script=document.createElement('script');script.type='module';
+   script.src='https://widgets.tradingview-widget.com/w/en/tv-mini-chart.js';
+   script.onload=resolve;script.onerror=()=>reject(new Error('O widget externo não pôde ser carregado.'));
+   document.head.append(script);
+  }}).then(()=>customElements.whenDefined('tv-mini-chart'));
+ }
+ return promessaTradingView;
+}}
+function adicionarLinkExterno(texto,url){{
+ const link=document.createElement('a');link.href=url;link.target='_blank';
+ link.rel='noopener noreferrer';link.textContent=texto;$('#chartStatus').append(' ',link);
+}}
+function atualizarTelaGrafico(){{
+ const parametros=parametrosGrafico(),ids=['watchlistToolbar','cards','charts','tables'];
+ const chartView=$('#chartView');
+ if(!parametros){{
+  sequenciaGrafico++;
+  ids.forEach(id=>{{const elemento=$(`#${{id}}`);if(elemento)elemento.hidden=false;}});
+  chartView.hidden=true;
+  return;
+ }}
+ ids.forEach(id=>{{const elemento=$(`#${{id}}`);if(elemento)elemento.hidden=true;}});
+ chartView.hidden=false;
+ const mercado=parametros.get('mercado'),ticker=parametros.get('ticker'),data=parametros.get('data');
+ const acao=dadosAtuais?.mercados?.[mercado]?.acoes?.find(item=>item.ticker===ticker);
+ $('#chartMarket').textContent=mercado==='B3'?'B3':'ESTADOS UNIDOS';
+ $('#chartTitle').textContent=ticker||'Gráfico do ativo';
+ $('#chartCompany').textContent=acao?.empresa&&acao.empresa!=='—'?acao.empresa:`${{mercado==='B3'?'B3':'EUA'}} · ${ownerDate(data)}`;
+ const area=$('#chartWidget');area.replaceChildren();
+ const sequencia=++sequenciaGrafico;
+ if(!acao){{$('#chartStatus').textContent='Esse ticker não está disponível na watchlist selecionada.';return;}}
+ const simbolo=simboloTradingView(mercado,acao);
+ if(!simbolo){{
+  $('#chartStatus').textContent='Não foi possível identificar a bolsa deste ticker para formar o símbolo do TradingView.';
+  adicionarLinkExterno('Buscar ticker no TradingView.',`https://www.tradingview.com/search/?query=${{encodeURIComponent(ticker||'')}}`);
+  return;
+ }}
+ $('#chartStatus').textContent=`Carregando gráfico de ${{simbolo}}…`;
+ carregarTradingView().then(()=>{{
+  if(sequencia!==sequenciaGrafico||!parametrosGrafico())return;
+  const widget=document.createElement('tv-mini-chart');
+  widget.setAttribute('symbol',simbolo);widget.setAttribute('theme','light');
+  area.replaceChildren(widget);$('#chartStatus').textContent='';
+ }}).catch(erro=>{{
+  if(sequencia===sequenciaGrafico){{
+   $('#chartStatus').textContent=erro.message;
+   adicionarLinkExterno('Abrir gráfico no TradingView.',`https://www.tradingview.com/chart/?symbol=${{encodeURIComponent(simbolo)}}`);
+  }}
+ }});
+}}
+function ownerDate(data){{return data||'data selecionada';}}
+$('#chartBack').addEventListener('click',()=>{{location.hash='';}});
+window.addEventListener('hashchange',atualizarTelaGrafico);
 async function iniciar(){{
  const select=$('#dateSelect');
  try{{
@@ -343,6 +440,7 @@ async function iniciar(){{
   const datas=await resposta.json();
   if(!datas.length){{select.innerHTML='<option>Nenhuma watchlist encontrada</option>';$('#asof').textContent='O Radar ainda não gerou arquivos.';$('#cards').innerHTML='';return;}}
   select.innerHTML=datas.map((d,i)=>`<option value="${{d}}">${{i===0?'Mais recente · ':''}}${{d}}</option>`).join('');
+  const dataSolicitada=parametrosGrafico()?.get('data');if(dataSolicitada&&datas.includes(dataSolicitada))select.value=dataSolicitada;
   async function carregar(){{
    $('#app').classList.add('loading');
    try{{const r=await fetch(`${{BASE}}/api/watchlist?data=${{encodeURIComponent(select.value)}}`,{{cache:'no-store'}});if(!r.ok)throw new Error('Arquivo da data selecionada indisponível.');render(await r.json(),select.value);}}
