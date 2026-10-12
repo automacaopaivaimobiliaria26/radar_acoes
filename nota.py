@@ -129,6 +129,7 @@ def carregar_atencao(caminho: Path) -> dict[tuple[str, str, date], dict[str, obj
             resultado[(mercado, ticker, dia)] = {
                 "noticias": parse_numero(linha.get("noticias_24h") or linha.get("noticias") or ""),
                 "atencao": parse_numero(linha.get("razao_atencao") or linha.get("razao") or ""),
+                "media_7d": parse_numero(linha.get("media_7d") or ""),
                 "parcial": (linha.get("parcial") or "").strip().casefold() in {"sim", "true", "1", "yes"},
             }
     return resultado
@@ -189,6 +190,7 @@ def montar_mercado(
     series: dict[str, list[dict[str, object]]],
     atencao: dict[tuple[str, str, date], dict[str, object]],
     ate: date | None = None,
+    data_atencao: date | None = None,
 ) -> tuple[date | None, list[dict[str, object]]]:
     """Calcula as notas de um mercado em sua última data disponível."""
     datas = [registro["data"] for serie in series.values() for registro in serie if ate is None or registro["data"] <= ate]
@@ -205,10 +207,11 @@ def montar_mercado(
             continue
         if mercado == "EUA" and item["fechamento"] <= MINIMO_PRECO_EUA:
             continue
-        hist = atencao.get((mercado, ticker, data_referencia), {})
+        hist = atencao.get((mercado, ticker, data_atencao or data_referencia), {})
         item["ticker"] = ticker
         item["noticias"] = hist.get("noticias")
         item["atencao"] = hist.get("atencao")
+        item["media_7d"] = hist.get("media_7d")
         item["atencao_parcial"] = bool(hist.get("parcial", False))
         base[ticker] = item
 
@@ -297,6 +300,42 @@ def gravar_watchlist(caminho: Path, resultados: dict[str, tuple[date | None, lis
     temporario.replace(caminho)
 
 
+def gravar_watchlist_csv(
+    caminho: Path,
+    resultados: dict[str, tuple[date | None, list[dict[str, object]]]],
+) -> None:
+    """Grava as mesmas 15 ações por mercado da watchlist Markdown em CSV."""
+    colunas = (
+        "data", "mercado", "ticker", "nota", "nota_parcial", "volume_relativo",
+        "retorno_5", "retorno_20", "noticias_24h", "media_7d", "razao_atencao", "motivo",
+    )
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    temporario = caminho.with_suffix(caminho.suffix + ".tmp")
+    with temporario.open("w", newline="", encoding="utf-8-sig") as arquivo:
+        escritor = csv.DictWriter(arquivo, fieldnames=colunas)
+        escritor.writeheader()
+        for mercado in ("B3", "EUA"):
+            data_referencia, lista = resultados[mercado]
+            if data_referencia is None:
+                continue
+            for item in lista[:LIMITE_WATCHLIST]:
+                escritor.writerow({
+                    "data": data_referencia.isoformat(),
+                    "mercado": mercado,
+                    "ticker": item["ticker"],
+                    "nota": f"{item['nota']:.4f}",
+                    "nota_parcial": "sim" if item["nota_parcial"] else "nao",
+                    "volume_relativo": f"{item['volume_relativo']:.8f}",
+                    "retorno_5": f"{item['retorno_5']:.8f}",
+                    "retorno_20": f"{item['retorno_20']:.8f}",
+                    "noticias_24h": "" if item["noticias"] is None else item["noticias"],
+                    "media_7d": "" if item.get("media_7d") is None else f"{item['media_7d']:.8f}",
+                    "razao_atencao": "" if item["atencao"] is None else f"{item['atencao']:.8f}",
+                    "motivo": motivo(item),
+                })
+    temporario.replace(caminho)
+
+
 def _celula_markdown(valor: object) -> str:
     """Escapa separadores e espaços nas células da tabela Markdown."""
     return " ".join(str(valor).replace("|", "/").split())
@@ -308,7 +347,10 @@ def main() -> int:
     parser.add_argument("--eua", type=Path, default=ARQUIVO_EUA, help="CSV de preços dos EUA (padrão: eua.csv).")
     parser.add_argument("--atencao", type=Path, default=ARQUIVO_ATENCAO, help="Histórico de notícias (padrão: atencao_hist.csv).")
     parser.add_argument("--data", type=date.fromisoformat, help="Data de referência AAAA-MM-DD para reproduzir uma watchlist histórica.")
+    parser.add_argument("--data-atencao", type=date.fromisoformat,
+                        help="Data da coleta de notícias (padrão: --data, ou hoje na execução normal).")
     parser.add_argument("--saida", type=Path, help="Markdown de saída; por padrão saida/watchlist_AAAA-MM-DD.md.")
+    parser.add_argument("--saida-csv", type=Path, help="CSV de saída; por padrão usa o mesmo nome da watchlist Markdown.")
     args = parser.parse_args()
 
     series_b3: dict[str, list[dict[str, object]]] = {}
@@ -330,21 +372,24 @@ def main() -> int:
         LOG.error("Não há cotações válidas nos CSVs de entrada.")
         return 1
     atencao = carregar_atencao(args.atencao)
-    data_b3, lista_b3 = montar_mercado("B3", series_b3, atencao, args.data)
-    data_eua, lista_eua = montar_mercado("EUA", series_eua, atencao, args.data)
+    data_atencao = args.data_atencao or args.data or date.today()
+    data_b3, lista_b3 = montar_mercado("B3", series_b3, atencao, args.data, data_atencao)
+    data_eua, lista_eua = montar_mercado("EUA", series_eua, atencao, args.data, data_atencao)
     referencias = [dia for dia in (data_b3, data_eua) if dia is not None]
     if not referencias:
         LOG.error("Não há cotações válidas nos CSVs de entrada.")
         return 1
     data_arquivo = args.data or max(referencias)
     destino = args.saida or PASTA_SAIDA / f"watchlist_{data_arquivo.isoformat()}.md"
+    destino_csv = args.saida_csv or destino.with_suffix(".csv")
     try:
         destino.parent.mkdir(parents=True, exist_ok=True)
         gravar_watchlist(destino, {"B3": (data_b3, lista_b3), "EUA": (data_eua, lista_eua)})
+        gravar_watchlist_csv(destino_csv, {"B3": (data_b3, lista_b3), "EUA": (data_eua, lista_eua)})
     except OSError as erro:
-        LOG.error("Não foi possível gravar %s: %s", destino, erro)
+        LOG.error("Não foi possível gravar a watchlist Markdown/CSV (%s, %s): %s", destino, destino_csv, erro)
         return 1
-    LOG.info("Watchlist salva em %s (%d B3, %d EUA)", destino, len(lista_b3), len(lista_eua))
+    LOG.info("Watchlist salva em %s e %s (%d B3, %d EUA)", destino, destino_csv, len(lista_b3), len(lista_eua))
     return 0
 
 

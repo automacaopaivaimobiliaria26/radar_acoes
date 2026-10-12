@@ -38,6 +38,8 @@ PAUSA_LOTES = 2.0
 TENTATIVAS = 3
 PAUSA_REPETICAO = 5.0
 DIAS_PRESERVAR_HISTORICO = 150
+JANELA_REVISAO_EVENTOS = 21
+VARIACAO_MAXIMA_SEM_REVISAO = 0.40
 PRECO_MINIMO = MINIMO_PRECO_EUA
 VOLUME_MEDIO_MINIMO = MINIMO_LIQUIDEZ_EUA
 
@@ -65,9 +67,8 @@ def simbolos_comuns() -> list[str]:
 
     for url in URLS_LISTAS:
         for linha in ler_lista(url):
-            # Other-listed traz várias bolsas; conserva NYSE (N) e NYSE American (A).
-            if "otherlisted" in url and (linha.get("Exchange") or "").strip().upper() not in {"N", "A"}:
-                continue
+            # Usa todas as bolsas cobertas por otherlisted; os filtros abaixo
+            # removem ETFs, testes e instrumentos que não sejam ações comuns.
             nome = (linha.get("Security Name") or "").strip()
             ticker = (linha.get("Symbol") or linha.get("ACT Symbol") or "").strip()
             if not ticker or not nome:
@@ -115,7 +116,7 @@ def baixar_lote(simbolos: list[str]):
                 interval="1d",
                 group_by="ticker",
                 auto_adjust=False,
-                actions=False,
+                actions=True,
                 threads=False,
                 progress=False,
                 timeout=30,
@@ -150,6 +151,8 @@ def coletar(simbolos: list[str]) -> list[list[object]]:
             if fechamento is None or quantidade is None:
                 continue
 
+            desdobramentos = extrair_coluna(dados, ticker, "Stock Splits")
+
             pares = []
             for dia, preco, qtd in zip(fechamento.index, fechamento, quantidade):
                 if preco is None or qtd is None:
@@ -164,6 +167,28 @@ def coletar(simbolos: list[str]) -> list[list[object]]:
 
             pares = pares[-DIAS_HISTORICO:]
             if len(pares) < 21:
+                continue
+
+            # Eventos de split recentes e saltos extremos podem distorcer
+            # retornos e volume financeiro. Exclui o papel temporariamente.
+            if desdobramentos is not None:
+                eventos = []
+                for dia, evento in zip(desdobramentos.index, desdobramentos):
+                    try:
+                        if float(evento) > 0:
+                            eventos.append(dia)
+                    except (TypeError, ValueError, OverflowError):
+                        continue
+                inicio_janela = pares[-JANELA_REVISAO_EVENTOS][0]
+                if any(evento >= inicio_janela for evento in eventos):
+                    LOG.warning("%s excluída: split nos últimos %d pregões", ticker, JANELA_REVISAO_EVENTOS)
+                    continue
+            fechamentos_recentes = [preco for _, preco, _ in pares[-JANELA_REVISAO_EVENTOS:]]
+            if any(
+                abs(atual / anterior - 1) > VARIACAO_MAXIMA_SEM_REVISAO
+                for anterior, atual in zip(fechamentos_recentes, fechamentos_recentes[1:])
+            ):
+                LOG.warning("%s excluída: variação acima de 40%% requer revisão de evento corporativo", ticker)
                 continue
             # Usa os 20 pregões anteriores ao mais recente para medir liquidez.
             media_dolar_20 = sum(preco * qtd for _, preco, qtd in pares[-21:-1]) / 20

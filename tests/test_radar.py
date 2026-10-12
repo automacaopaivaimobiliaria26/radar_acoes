@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import io
+import tempfile
+import urllib.parse
 import zipfile
 import unittest
 from datetime import date, datetime, timedelta, timezone
 from email.utils import format_datetime
+from pathlib import Path
 from unittest.mock import patch
 
 from radar import b3
@@ -51,7 +54,7 @@ class TestRadar(unittest.TestCase):
 
         with patch.object(eua.urllib.request, "urlopen", side_effect=resposta_falsa):
             selecionadas = eua.simbolos_comuns()
-        self.assertEqual(set(selecionadas), {"AAA", "BBB", "CCC"})
+        self.assertEqual(set(selecionadas), {"AAA", "BBB", "CCC", "DDD"})
 
     def test_coleta_eua_processa_lote_simulado(self):
         import pandas as pd
@@ -99,20 +102,68 @@ class TestRadar(unittest.TestCase):
         )
         xml = f"<rss><channel>{itens}</channel></rss>".encode()
         candidata = {"mercado": "B3", "ticker": "ABC"}
-        with patch.object(atencao.urllib.request, "urlopen", return_value=RespostaFalsa(xml)):
-            total = atencao.consulta_rss(candidata, agora)
+        urls = []
+
+        def resposta(pedido, **_kwargs):
+            urls.append(pedido.full_url)
+            return RespostaFalsa(xml)
+
+        with patch.object(atencao.urllib.request, "urlopen", side_effect=resposta):
+            total = atencao.consulta_rss(candidata, agora, "Alpha Energia")
         self.assertEqual(total, 1)
+        self.assertIn('"ABC" OR "Alpha Energia"', urllib.parse.unquote_plus(urls[0]))
+
+    def test_carrega_nome_empresarial_de_cadastro_delimitado_por_ponto_e_virgula(self):
+        with tempfile.TemporaryDirectory() as temporario:
+            caminho = Path(temporario) / "empresas.csv"
+            caminho.write_text("Ticker;Nome da Empresa;Bolsa\nAAA;Alpha S.A.;B3\n", encoding="utf-8")
+            nomes = atencao.carregar_nomes_empresas({"B3": caminho})
+        self.assertEqual(nomes[("B3", "AAA")], "Alpha S.A.")
 
     def test_atencao_usa_sete_observacoes_anteriores(self):
         hoje = date(2026, 10, 4)
+        dias = []
+        dia = hoje - timedelta(days=1)
+        while len(dias) < 7:
+            if dia.weekday() < 5:
+                dias.append(dia)
+            dia -= timedelta(days=1)
         historico = [
-            {"data": (hoje - timedelta(days=dias)).isoformat(), "mercado": "B3", "ticker": "ABC", "noticias_24h": str(dias)}
-            for dias in range(1, 8)
+            {"data": data.isoformat(), "mercado": "B3", "ticker": "ABC", "noticias_24h": str(indice + 1)}
+            for indice, data in enumerate(dias)
         ]
         razao, media, parcial = atencao.calcular_razao(historico, "B3", "ABC", hoje, 14)
         self.assertEqual(media, 4.0)
         self.assertEqual(razao, 3.5)
         self.assertFalse(parcial)
+
+    def test_atencao_ignora_observacoes_parciais_e_exige_sete_completas(self):
+        hoje = date(2026, 10, 4)
+        dias = []
+        dia = hoje - timedelta(days=1)
+        while len(dias) < 7:
+            if dia.weekday() < 5:
+                dias.append(dia)
+            dia -= timedelta(days=1)
+        historico = [
+            {"data": data.isoformat(), "mercado": "B3", "ticker": "ABC",
+             "noticias_24h": str(indice + 1), "parcial": "sim" if indice == 0 else "nao"}
+            for indice, data in enumerate(dias)
+        ]
+        razao, _media, parcial = atencao.calcular_razao(historico, "B3", "ABC", hoje, 14)
+        self.assertEqual(razao, 14.0)
+        self.assertTrue(parcial)
+
+    def test_coleta_eua_exclui_split_recente(self):
+        import pandas as pd
+
+        dias = pd.date_range("2026-01-01", periods=25, freq="B")
+        colunas = pd.MultiIndex.from_product([["AAA"], ["Close", "Volume", "Stock Splits"]])
+        linhas = [[100 + i, 100_000, 2 if i == 22 else 0] for i in range(25)]
+        dados = pd.DataFrame(linhas, index=dias, columns=colunas)
+        with patch.object(eua.yf, "download", return_value=dados):
+            resultado = eua.coletar(["AAA"])
+        self.assertEqual(resultado, [])
 
     def test_indicadores_ignoram_cotacao_posterior(self):
         inicio = date(2026, 9, 1)
@@ -125,6 +176,25 @@ class TestRadar(unittest.TestCase):
         self.assertEqual(resultado["data"], data_corte)
         self.assertAlmostEqual(resultado["fechamento"], 120)
         self.assertAlmostEqual(resultado["retorno_5"], 5 / 115)
+
+    def test_watchlist_csv_contem_campos_e_mercado(self):
+        with tempfile.TemporaryDirectory() as temporario:
+            caminho = Path(temporario) / "watchlist.csv"
+            item = {
+                "ticker": "ABC", "nota": 80.0, "nota_parcial": True,
+                "volume_relativo": 2.0, "retorno_5": 0.1, "retorno_20": 0.2,
+                "noticias": 3, "atencao": 1.5, "media_7d": 2.0,
+                "atencao_parcial": False,
+            }
+            data = date(2026, 10, 2)
+            nota.gravar_watchlist_csv(caminho, {"B3": (data, [item]), "EUA": (None, [])})
+            import csv
+            with caminho.open(newline="", encoding="utf-8-sig") as arquivo:
+                registros = list(csv.DictReader(arquivo))
+        self.assertEqual(len(registros), 1)
+        self.assertEqual(registros[0]["mercado"], "B3")
+        self.assertEqual(registros[0]["data"], "2026-10-02")
+        self.assertEqual(registros[0]["nota_parcial"], "sim")
 
 
 if __name__ == "__main__":

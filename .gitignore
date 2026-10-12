@@ -6,3 +6,5 @@ dados/*.csv
 dados/*.tmp
 logs/*.log
 saida/*.md
+saida/*.csv
+saida/*.tmp

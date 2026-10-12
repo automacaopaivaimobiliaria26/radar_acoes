@@ -17,6 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from radar.config import ARQUIVO_ATENCAO, ARQUIVO_CANDIDATAS, MAX_ACOES_NOTICIAS
+from radar.config import RAIZ
 
 
 URL_RSS = "https://news.google.com/rss/search"
@@ -28,6 +29,10 @@ COLUNAS_HISTORICO = (
     "data", "mercado", "ticker", "volume_relativo", "noticias_24h", "media_7d",
     "razao_atencao", "parcial",
 )
+ARQUIVOS_EMPRESAS = {
+    "B3": RAIZ / "referencias" / "empresas_b3.csv",
+    "EUA": RAIZ / "referencias" / "empresas_nyse_nasdaq_bolsa.csv",
+}
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("radar.atencao")
@@ -51,6 +56,33 @@ def valor_coluna(linha: dict[str, str], *nomes: str) -> str:
         if por_nome.get(nome.casefold()):
             return por_nome[nome.casefold()]
     return ""
+
+
+def carregar_nomes_empresas(caminhos: dict[str, Path] | None = None) -> dict[tuple[str, str], str]:
+    """Lê apenas ticker e nome dos cadastros locais, sem buscar nomes na rede."""
+    resultado: dict[tuple[str, str], str] = {}
+    for mercado, caminho in (caminhos or ARQUIVOS_EMPRESAS).items():
+        if not caminho.exists():
+            LOG.warning("Cadastro de nomes indisponível para %s: %s", mercado, caminho)
+            continue
+        try:
+            conteudo = caminho.read_text(encoding="utf-8-sig")
+            primeira_linha = next((linha for linha in conteudo.splitlines() if linha.strip()), "")
+            try:
+                separador = csv.Sniffer().sniff(primeira_linha, delimiters=",;").delimiter
+            except csv.Error:
+                separador = ";" if primeira_linha.count(";") > primeira_linha.count(",") else ","
+            leitor = csv.DictReader(conteudo.splitlines(), delimiter=separador)
+            if not leitor.fieldnames:
+                continue
+            for linha in leitor:
+                ticker = valor_coluna(linha, "ticker", "symbol", "act symbol").upper()
+                nome = valor_coluna(linha, "nome da empresa", "nome empresa", "company name", "empresa", "nome")
+                if ticker and nome:
+                    resultado[(mercado.upper(), ticker.replace(".", "-").replace("$", "-") )] = nome
+        except (OSError, UnicodeError, csv.Error) as erro:
+            LOG.warning("Não foi possível ler o cadastro %s: %s", caminho, erro)
+    return resultado
 
 
 def ler_candidatas(caminho: Path, limite: int = MAX_ACOES) -> list[dict[str, str]]:
@@ -85,11 +117,14 @@ def ler_candidatas(caminho: Path, limite: int = MAX_ACOES) -> list[dict[str, str
     return sorted(unicas.values(), key=lambda item: item["volume_relativo"], reverse=True)[:limite]
 
 
-def consulta_rss(candidata: dict[str, str], agora: datetime) -> int | None:
+def consulta_rss(candidata: dict[str, str], agora: datetime, nome_empresa: str = "") -> int | None:
     """Busca notícias recentes e conta manchetes únicas nas últimas 24 horas."""
     mercado = candidata["mercado"]
     ticker = candidata["ticker"]
-    consulta = '"' + ticker.replace('"', " ").strip() + '"'
+    termos = ['"' + ticker.replace('"', " ").strip() + '"']
+    if nome_empresa and normalizar(nome_empresa) != normalizar(ticker):
+        termos.append('"' + nome_empresa.replace('"', " ").strip() + '"')
+    consulta = " OR ".join(termos)
     idioma = "pt-BR" if mercado == "B3" else "en-US"
     regiao = "BR" if mercado == "B3" else "US"
     codigo_edicao = "BR:pt-419" if mercado == "B3" else "US:en"
@@ -143,8 +178,14 @@ def ler_historico(caminho: Path) -> list[dict[str, str]]:
 def calcular_razao(
     historico: list[dict[str, str]], mercado: str, ticker: str, hoje: date, contagem: int
 ) -> tuple[float, float, bool]:
-    """Compara hoje com os sete dias anteriores, sem incluir o próprio dia."""
-    inicio = hoje - timedelta(days=14)
+    """Compara com as sete execuções diárias anteriores, sem incluir hoje."""
+    esperados: list[date] = []
+    dia = hoje - timedelta(days=1)
+    while len(esperados) < 7:
+        if dia.weekday() < 5:
+            esperados.append(dia)
+        dia -= timedelta(days=1)
+    esperados_set = set(esperados)
     anteriores: dict[date, int] = {}
     for linha in historico:
         if linha.get("mercado", "").upper() != mercado or linha.get("ticker", "").upper() != ticker:
@@ -154,14 +195,16 @@ def calcular_razao(
             qtd = int(float(linha["noticias_24h"]))
         except (KeyError, TypeError, ValueError):
             continue
-        if inicio <= dia < hoje:
+        if (linha.get("parcial") or "").strip().casefold() in {"sim", "true", "1", "yes"}:
+            continue
+        if dia in esperados_set:
             anteriores[dia] = qtd
 
-    # Usa até sete observações recentes; 14 dias cobrem fins de semana e feriados.
-    ultimos_sete = sorted(anteriores.items())[-7:]
-    if len(ultimos_sete) < 7:
+    # A agenda roda de segunda a sexta. Exige todos os sete dias esperados;
+    # uma ação fora das candidatas ou uma busca falha não vira contagem zero.
+    if len(anteriores) < 7:
         return float(contagem), 0.0, True
-    media = sum(qtd for _, qtd in ultimos_sete) / 7
+    media = sum(anteriores.values()) / 7
     # Média zero não permite uma razão válida; usa a contagem atual e marca parcial.
     if media <= 0:
         return float(contagem), media, True
@@ -207,6 +250,7 @@ def main() -> int:
     # Usa a data local do Radar; o corte das últimas 24 horas continua em UTC.
     hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     historico = ler_historico(args.historico)
+    nomes = carregar_nomes_empresas()
     novas: list[dict[str, object]] = []
     consultas_interrompidas = False
     falhas_seguidas = 0
@@ -214,9 +258,11 @@ def main() -> int:
         if indice and not consultas_interrompidas:
             time.sleep(PAUSA_BUSCAS)
         contagem = None
+        chave_nome = (candidata["mercado"], candidata["ticker"].replace(".", "-").replace("$", "-"))
+        nome_empresa = nomes.get(chave_nome, "")
         if not consultas_interrompidas:
             try:
-                contagem = consulta_rss(candidata, agora)
+                contagem = consulta_rss(candidata, agora, nome_empresa)
             except BloqueioRSS as erro:
                 consultas_interrompidas = True
                 LOG.error("RSS limitou as consultas (%s); as próximas ações ficam sem contagem.", erro)
@@ -233,6 +279,10 @@ def main() -> int:
             contagem_csv = ""
         else:
             razao, media, parcial = calcular_razao(historico, mercado, ticker, hoje, contagem)
+            # Sem nome empresarial, o RSS é útil como fallback, mas a consulta
+            # não cobre integralmente os termos definidos no PDF.
+            if not nome_empresa:
+                parcial = True
             contagem_csv = contagem
         novas.append({
             "data": hoje.isoformat(),

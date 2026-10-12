@@ -13,12 +13,12 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 │   ├── noticias.py     # interface para a coleta RSS e histórico
 │   ├── candidatas.py   # seleciona até 60 maiores volumes relativos
 │   ├── calculo.py      # interface para indicadores e percentis
-│   ├── watchlist.py    # interface para o relatório Markdown
+│   ├── watchlist.py    # interface para os relatórios Markdown e CSV
 │   └── main.py         # orquestra a sequência completa
-├── referencias/        # CSVs antigos, mantidos no repositório e não carregados pelo Radar
+├── referencias/        # cadastros locais usados no RSS e no enriquecimento do dashboard
 ├── dados/              # arquivos CSV gerados durante as coletas
 ├── logs/               # radar.log
-├── saida/              # watchlists Markdown
+├── saida/              # watchlists Markdown/CSV e relatórios de validação
 ├── deploy/             # entrypoint e agenda cron da imagem
 ├── tests/              # testes sem chamadas externas
 ├── Dockerfile          # imagem Python e cron para EasyPanel
@@ -29,10 +29,11 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 ├── nota.py             # cálculo das notas e geração da watchlist
 ├── main.py             # comando de entrada do projeto
 ├── dashboard.py        # página visual que lê as watchlists Markdown
+├── validacao.py        # compara watchlists com retornos futuros do universo do dia
 └── requirements.txt
 ```
 
-Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). O Radar não coleta nem grava nome, descrição ou bolsa das empresas. As notícias são consultadas somente pelo ticker. Os CSVs antigos em `referencias/` permanecem no Git, mas não são lidos pelo aplicativo.
+Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). As buscas de notícias usam ticker e nome empresarial obtido dos cadastros locais em `referencias/`; esses nomes não são acrescentados aos históricos de cotações nem às watchlists. O dashboard também lê esses cadastros para completar empresa, bolsa e descrição quando apresenta uma watchlist. O Radar não baixa nem grava esses dados empresariais durante a coleta.
 
 ## Instalação no Ubuntu
 
@@ -44,7 +45,9 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar. O coletor repete lotes e só substitui o CSV de produção quando a coleta termina com dados; se um lote falhar, preserva o CSV anterior. A lista do Nasdaq Trader é filtrada para Nasdaq, NYSE e NYSE American, removendo ETFs, títulos de teste e instrumentos que não pareçam ações comuns. O campo de nome de segurança é usado somente para esse filtro de tipo de instrumento; o nome empresarial não é coletado nem gravado.
+No macOS, use `python3 -m venv .venv`, `source .venv/bin/activate` e `python -m pip install -r requirements.txt`. No Windows PowerShell, use `py -3 -m venv .venv`, `.\.venv\Scripts\Activate.ps1` e `python -m pip install -r requirements.txt`.
+
+O coletor dos EUA usa `yfinance`, uma biblioteca não oficial que lê dados do Yahoo Finance, para pesquisa pessoal. Disponibilidade, limites e termos de uso podem mudar. O coletor repete lotes e só substitui o CSV de produção quando a coleta termina com dados; se um lote falhar, preserva o CSV anterior. As duas listas oficiais do Nasdaq Trader são filtradas para remover ETFs, títulos de teste e instrumentos que não pareçam ações comuns. Splits informados pelo Yahoo nos últimos 21 pregões e variações de preço acima de 40% em 20 variações recentes são excluídos temporariamente para evitar distorções que exigem revisão. Ações com nome ausente no cadastro local ainda podem ser pesquisadas pelo ticker; a observação fica marcada como parcial.
 
 ## Primeira execução
 
@@ -66,8 +69,8 @@ O comando executa estas etapas em sequência:
 1. Baixa até 60 pregões recentes da B3 pelo COTAHIST diário.
 2. Baixa o histórico diário das ações selecionadas das listas da Nasdaq Trader e filtra preço acima de US$ 5 e média de volume financeiro acima de US$ 5 milhões.
 3. Seleciona até 60 ações com maior volume relativo combinado entre os mercados e consulta as manchetes no RSS do Google Notícias.
-4. Calcula volume relativo, retornos de 5 e 20 pregões, percentis separados por mercado e a nota ponderada. Na B3, BDRs e ações com salto absoluto superior a 40% em uma das últimas 20 variações são excluídos para reduzir distorções de eventos corporativos não ajustados.
-5. Salva `saida/watchlist_AAAA-MM-DD.md` e registra a execução em `logs/radar.log`.
+4. Calcula volume relativo, retornos de 5 e 20 pregões, percentis separados por mercado e a nota ponderada. Na B3, BDRs e ações com salto absoluto superior a 40% em uma das últimas 20 variações são excluídos. Nos EUA, ações com split informado recentemente ou salto superior a 40% em 20 variações são excluídas até revisão, para reduzir distorções de eventos corporativos.
+5. Salva `saida/watchlist_AAAA-MM-DD.md` e `saida/watchlist_AAAA-MM-DD.csv`, além de registrar a execução em `logs/radar.log`.
 
 Se a atualização de um mercado falhar, o Radar tenta gerar uma watchlist com o histórico daquele mercado já existente e o mercado que conseguiu atualizar. Se a etapa de notícias falhar, gera a watchlist com os componentes disponíveis. A execução fica registrada como incompleta (código diferente de zero e sem atualizar `ultimo_sucesso.txt`); confira o log antes de considerar a saída completa. A ausência de um dos CSVs de cotações omite esse mercado em vez de interromper o outro.
 
@@ -81,7 +84,7 @@ python -m unittest discover -s tests -v
 
 ## Fórmula e dados incompletos
 
-O volume relativo é o volume financeiro do pregão dividido pela média dos 20 pregões anteriores. O momento combina a média dos percentis dos retornos de 5 e 20 pregões. Notícias são a contagem de manchetes únicas nas últimas 24 horas; atenção é a razão entre essa contagem e a média das sete observações diárias anteriores.
+O volume relativo é o volume financeiro do pregão dividido pela média dos 20 pregões anteriores. O momento combina a média dos percentis dos retornos de 5 e 20 pregões. Notícias são a contagem de manchetes únicas nas últimas 24 horas. Atenção é a razão entre essa contagem e a média das sete execuções diárias completas anteriores de segunda a sexta. Dias ausentes ou buscas parciais não são tratados como zero; se faltar qualquer uma das sete observações, a nota fica parcial e usa a contagem de notícias disponível.
 
 ```text
 nota = 100 x (0,40 x percentil_volume
@@ -90,7 +93,19 @@ nota = 100 x (0,40 x percentil_volume
            + 0,15 x percentil_atencao)
 ```
 
-Quando a atenção está ausente ou parcial, o cálculo redistribui proporcionalmente os pesos dos componentes disponíveis e marca a nota como parcial. A seleção de notícias consulta somente o ticker. A watchlist contém ticker, nota, volume relativo, retorno de 5 pregões, notícias das últimas 24 horas e motivo. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
+Quando notícias ou atenção estão ausentes ou parciais, o cálculo redistribui proporcionalmente os pesos dos componentes completos e marca a nota como parcial. A busca RSS usa o ticker e o nome empresarial disponível no cadastro local; se não houver nome cadastrado, consulta o ticker e marca o registro como parcial. A watchlist Markdown e seu CSV correspondente contêm as 15 maiores notas de cada mercado, com ticker, nota, volume relativo, retorno de 5 pregões, notícias das últimas 24 horas e motivo. Os percentis são calculados dentro de cada mercado e com dados disponíveis até a data da watchlist.
+
+## Validação histórica
+
+Depois de acumular watchlists e cotações, compare as 15 maiores notas com o universo disponível no mesmo pregão:
+
+```bash
+python validacao.py
+```
+
+O relatório `saida/validacao_AAAA-MM-DD.md` separa B3 e EUA e calcula retornos líquidos após custo total de 0,1% por compra e venda nos 5 e 20 pregões seguintes. Mostra média e mediana dos retornos por ação e das médias diárias da carteira, retorno médio do universo, excesso médio, porcentagem de ações com retorno positivo, porcentagem das ações selecionadas que superaram a média do mercado, frequência em que a carteira supera o universo e pior caso. Cada carteira e o universo usam pesos iguais. Datas sem cotações futuras suficientes aparecem como pendentes; ações sem preço no pregão-alvo são contabilizadas como faltantes. O diagnóstico de ruído calcula um intervalo t de 95% para o excesso médio usando janelas não sobrepostas; o relatório informa quantas janelas foram usadas e marca o resultado como compatível com ruído quando o intervalo inclui zero. Com menos de duas janelas, o diagnóstico fica inconclusivo. É uma medida estatística simples, não uma prova de desempenho nem uma previsão. O CSV de preços precisa manter o pregão de entrada e os pregões futuros para que a avaliação possa ser calculada.
+
+Acumule pelo menos 4 a 8 semanas de watchlists antes de interpretar as métricas. O número de janelas não sobrepostas exibido no diagnóstico mostra quanto histórico efetivamente sustenta cada horizonte; o horizonte de 20 pregões costuma ter menos janelas independentes no mesmo período. Mesmo com custos, amostras curtas têm incerteza e não demonstram desempenho futuro. O script é um diário descritivo, não uma conclusão de investimento.
 
 ## Agendamento no VPS
 
@@ -147,13 +162,13 @@ Se o VPS estiver desligado às 21h30, a verificação horária ou a inicializaç
 
 ### Cron no host, sem o container agendador
 
-Use este modo somente se optar por rodar o clone do repositório diretamente no Ubuntu. Crie ambiente virtual e instale `requirements.txt` conforme a seção de instalação. Depois edite o crontab do usuário que executará o Radar:
+Use este modo somente se optar por rodar o clone do repositório diretamente no computador. Crie ambiente virtual e instale `requirements.txt` conforme a seção de instalação. No Linux, defina `CRON_TZ=America/Sao_Paulo`; no macOS, configure o fuso horário do sistema para Brasília e omita essa linha. Depois edite o crontab do usuário que executará o Radar:
 
 ```bash
 crontab -e
 ```
 
-Adicione uma linha, trocando `/opt/radar` pelo caminho real do clone. O `CRON_TZ` define Brasília independentemente do fuso padrão do host:
+Adicione as linhas abaixo, trocando `/opt/radar` pelo caminho real do clone. No macOS, omita a linha `CRON_TZ`:
 
 ```cron
 CRON_TZ=America/Sao_Paulo
@@ -162,10 +177,30 @@ CRON_TZ=America/Sao_Paulo
 
 Confira a agenda com `crontab -l` e os registros com `tail -n 100 /opt/radar/logs/radar.log` e `tail -n 50 /opt/radar/logs/cron.log`. Se o computador ficar desligado, essa execução também é perdida; rode `/opt/radar/.venv/bin/python /opt/radar/main.py` manualmente quando voltar. Não use este crontab do host junto com o cron já ativo no serviço Docker.
 
+No Windows, crie uma tarefa no **Agendador de Tarefas** para iniciar de segunda a sexta às 21h30. Em **Ação**, escolha “Iniciar um programa”, informe o caminho completo para `python.exe` do ambiente virtual, por exemplo `C:\Radar Ações\.venv\Scripts\python.exe`, e em **Adicionar argumentos** informe `main.py`. Em **Iniciar em**, informe a pasta do clone. Na guia **Configurações**, habilite a execução assim que possível após um início agendado perdido. Para registrar a saída, use um arquivo `.bat` como ação:
+
+```bat
+@echo off
+cd /d "C:\Radar Ações"
+"C:\Radar Ações\.venv\Scripts\python.exe" main.py >> logs\cron.log 2>&1
+```
+
+Confira `logs\radar.log` e `logs\cron.log`. No Windows, marque a opção de executar a tarefa após o horário perdido. No macOS/Linux, rode `python main.py` manualmente se o computador estava desligado no horário.
+
 ## Limites e revisão
 
 - O COTAHIST é filtrado pelos códigos de mercado e lote padrão usados no roteiro de referência. Dados ausentes, formato alterado ou desdobramentos podem exigir revisão.
-- O universo dos EUA deriva das listas de símbolos da Nasdaq Trader; o nome da listagem é usado somente para excluir tipos de instrumento que não sejam ações comuns.
+- O universo dos EUA deriva das listas `nasdaqlisted` e `otherlisted` da Nasdaq Trader; o nome da listagem é usado para excluir tipos de instrumento que não sejam ações comuns. Nomes empresariais para RSS vêm dos CSVs versionados em `referencias/`.
 - RSS pode conter resultados irrelevantes, duplicados ou incompletos; a contagem é uma aproximação de atenção.
 - Pesos e percentis são parâmetros de pesquisa, não evidência de desempenho futuro.
 - Verifique os CSVs e as primeiras watchlists antes de confiar nos resultados. A lista não é recomendação de investimento.
+
+Para conferir a atenção por busca, use o [Google Trends](https://trends.google.com/trends/) manualmente nas 10 maiores notas. O Radar não usa bibliotecas não oficiais do Trends; consulte a [documentação oficial do Google Trends](https://developers.google.com/search/apis/trends) para o status e as condições atuais de acesso à API.
+
+## Fontes, pesquisa e enquadramento
+
+- Cotações B3: [histórico oficial COTAHIST](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/).
+- Universo dos EUA: [Nasdaq Listed](https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt) e [Other Listed](https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt); preços via [yfinance](https://github.com/ranaroussi/yfinance), sujeito à disponibilidade e aos termos do Yahoo Finance.
+- Manchetes: RSS de busca do [Google Notícias](https://news.google.com/).
+- Estudos citados no material: [Gervais, Kaniel e Mingelgrin](https://doi.org/10.1111/0022-1082.00349), [Da, Engelberg e Gao](https://doi.org/10.1111/j.1540-6261.2011.01679.x), [Barber e Odean](https://doi.org/10.1093/rfs/hhm079) e [Barber, Huang, Odean e Schwarz](https://doi.org/10.1111/jofi.13183). A evidência descrita no PDF inclui alta de curto prazo e reversão, além de resultados adversos associados a compras por atenção; os pesos do Radar não são calibrados por esses estudos.
+- Regras brasileiras citadas no material: [Resolução CVM 20](https://conteudo.cvm.gov.br/legislacao/resolucoes/resol020.html) e [Resolução CVM 19](https://conteudo.cvm.gov.br/legislacao/resolucoes/resol019.html). O Radar se destina a estudo pessoal e não produz recomendação ou aconselhamento profissional.

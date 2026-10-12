@@ -98,6 +98,7 @@ def executar(limite_eua: int | None = None) -> Path:
 
     try:
         agora = datetime.now(FUSO_RADAR)
+        data_execucao = agora.date()
         (PASTA_DADOS / "ultima_tentativa.txt").write_text(agora.isoformat(timespec="seconds"))
         logger.info("Iniciando Radar de pesquisa; nenhuma recomendação é produzida.")
         etapas_com_erro: list[str] = []
@@ -125,11 +126,10 @@ def executar(limite_eua: int | None = None) -> Path:
         except RuntimeError:
             etapas_com_erro.append("notícias")
             logger.exception("Notícias indisponíveis; vou gerar a watchlist com os componentes disponíveis.")
-        data_referencia = max(item["data"] for item in candidatas)
-        watchlist = PASTA_SAIDA / f"watchlist_{data_referencia.isoformat()}.md"
+        watchlist = PASTA_SAIDA / f"watchlist_{data_execucao.isoformat()}.md"
         executar_comando(logger, "cálculo de notas e watchlist", [
             python, str(RAIZ / "nota.py"), "--b3", str(ARQUIVO_B3), "--eua", str(ARQUIVO_EUA),
-            "--atencao", str(ARQUIVO_ATENCAO), "--saida", str(watchlist),
+            "--atencao", str(ARQUIVO_ATENCAO), "--data-atencao", data_execucao.isoformat(), "--saida", str(watchlist),
         ])
         if etapas_com_erro:
             raise RuntimeError(
