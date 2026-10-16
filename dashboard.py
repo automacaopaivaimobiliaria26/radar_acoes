@@ -258,6 +258,10 @@ def html_dashboard(base_path: str) -> str:
     .toolbar {{ display:flex; justify-content:space-between; align-items:end; gap:18px; flex-wrap:wrap; margin:26px 0 18px }}
     .toolbar label {{ display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em }}
     select {{ min-width:220px; border:1px solid var(--line); border-radius:11px; padding:12px 42px 12px 14px; background:#fff; color:var(--ink); font:inherit; font-weight:700 }}
+    .toolbar-actions {{ display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap }}
+    .download-button {{ border:0; border-radius:11px; padding:12px 16px; background:var(--teal); color:#fff; font:inherit; font-weight:800; text-decoration:none; cursor:pointer }}
+    .download-button:hover:not(:disabled) {{ background:#066b75 }}
+    .download-button:disabled {{ opacity:.5; cursor:not-allowed }}
     .asof {{ color:var(--muted); font-size:13px }}
     .notice {{ padding:12px 15px; margin:0 0 20px; border:1px solid #f0d7b2; border-radius:12px; color:#75501c; background:#fff8ed; font-size:13px }}
     .cards {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px }}
@@ -314,7 +318,7 @@ def html_dashboard(base_path: str) -> str:
 <body>
 <main class="shell" id="app">
   <header><div><div class="eyebrow">Painel de pesquisa</div><h1>Radar de Ações</h1><p>Volume, momento e atenção em um só lugar.</p></div><div class="header-mark" aria-hidden="true">⌁</div></header>
-  <div class="toolbar" id="watchlistToolbar"><label>Data da watchlist<select id="dateSelect" aria-label="Selecione o dia da watchlist"></select></label><div class="asof" id="asof">Carregando arquivos…</div></div>
+  <div class="toolbar" id="watchlistToolbar"><label>Data da watchlist<select id="dateSelect" aria-label="Selecione o dia da watchlist"></select></label><div class="toolbar-actions"><button class="download-button" id="downloadButton" type="button" disabled>Baixar watchlist (.md)</button><div class="asof" id="asof">Carregando arquivos…</div></div></div>
   <div class="notice">Ferramenta de estudo. Não é recomendação de investimento e não executa operações. Notas marcadas como parciais usam dados incompletos.</div>
   <section class="panel chart-view" id="chartView" hidden aria-labelledby="chartTitle">
     <div class="chart-heading"><div><span class="market-tag" id="chartMarket"></span><h2 id="chartTitle">Gráfico do ativo</h2><p class="chart-company" id="chartCompany"></p></div><button class="chart-back" id="chartBack" type="button">← Voltar à watchlist</button></div>
@@ -353,6 +357,7 @@ function marketTable(name,rows){{
 }}
 function render(data,date){{
  dadosAtuais=data;dataAtual=date;
+ $('#downloadButton').disabled=false;
  const b3=data.mercados.B3.acoes,eua=data.mercados.EUA.acoes;
  const topB3=b3[0],topEua=eua[0];
  $('#asof').textContent=`Referência dos dados: B3 ${{data.mercados.B3.referencia||date}} · EUA ${{data.mercados.EUA.referencia||date}}`;
@@ -463,6 +468,12 @@ $('#chartBack').addEventListener('click',()=>{{location.hash='';}});
 window.addEventListener('hashchange',atualizarTelaGrafico);
 async function iniciar(){{
  const select=$('#dateSelect');
+ const downloadButton=$('#downloadButton');
+ downloadButton.addEventListener('click',()=>{{
+  if(!dataAtual)return;
+  const parametros=new URLSearchParams({{data:dataAtual}});
+  window.location.assign(`${{BASE}}/api/download?${{parametros.toString()}}`);
+ }});
  try{{
   const resposta=await fetch(`${{BASE}}/api/datas`,{{cache:'no-store'}}); if(!resposta.ok)throw new Error('Não foi possível listar as watchlists.');
   const datas=await resposta.json();
@@ -470,6 +481,7 @@ async function iniciar(){{
   select.innerHTML=datas.map((d,i)=>`<option value="${{d}}">${{i===0?'Mais recente · ':''}}${{d}}</option>`).join('');
   const dataSolicitada=parametrosGrafico()?.get('data');if(dataSolicitada&&datas.includes(dataSolicitada))select.value=dataSolicitada;
   async function carregar(){{
+   downloadButton.disabled=true;
    $('#app').classList.add('loading');
    try{{const r=await fetch(`${{BASE}}/api/watchlist?data=${{encodeURIComponent(select.value)}}`,{{cache:'no-store'}});if(!r.ok)throw new Error('Arquivo da data selecionada indisponível.');render(await r.json(),select.value);}}
    catch(e){{$('#asof').textContent=e.message;$('#cards').innerHTML='';$('#charts').innerHTML='';$('#tables').innerHTML='';}}
@@ -519,6 +531,27 @@ def resolver_get(url: str, base_path: str) -> tuple[int, bytes, str]:
             corpo = json.dumps({"erro": "Não foi possível ler o arquivo."}, ensure_ascii=False).encode("utf-8")
             return 500, corpo, "application/json; charset=utf-8"
         return 200, corpo, "application/json; charset=utf-8"
+    if api_path == "/api/download":
+        parametros = parse_qs(requisicao.query)
+        datas = parametros.get("data", [])
+        if len(datas) != 1 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", datas[0]):
+            corpo = json.dumps({"erro": "Data inválida."}, ensure_ascii=False).encode("utf-8")
+            return 400, corpo, "application/json; charset=utf-8"
+        try:
+            datetime.strptime(datas[0], "%Y-%m-%d")
+        except ValueError:
+            corpo = json.dumps({"erro": "Data inválida."}, ensure_ascii=False).encode("utf-8")
+            return 400, corpo, "application/json; charset=utf-8"
+        arquivo = PASTA_SAIDA / f"watchlist_{datas[0]}.md"
+        if not arquivo.is_file():
+            corpo = json.dumps({"erro": "Watchlist não encontrada."}, ensure_ascii=False).encode("utf-8")
+            return 404, corpo, "application/json; charset=utf-8"
+        try:
+            return 200, arquivo.read_bytes(), "text/markdown; charset=utf-8"
+        except OSError as erro:
+            LOG.exception("Falha ao preparar o download de %s: %s", arquivo, erro)
+            corpo = json.dumps({"erro": "Não foi possível baixar o arquivo."}, ensure_ascii=False).encode("utf-8")
+            return 500, corpo, "application/json; charset=utf-8"
     return 404, b"not found", "text/plain; charset=utf-8"
 
 
@@ -529,10 +562,12 @@ def criar_servidor(host: str, port: int, base_path: str) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
         server_version = "RadarDashboard/1.0"
 
-        def responder(self, status: int, conteudo: bytes, tipo: str) -> None:
+        def responder(self, status: int, conteudo: bytes, tipo: str, nome_arquivo: str | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", tipo)
             self.send_header("Content-Length", str(len(conteudo)))
+            if nome_arquivo:
+                self.send_header("Content-Disposition", f'attachment; filename="{nome_arquivo}"')
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
@@ -542,7 +577,16 @@ def criar_servidor(host: str, port: int, base_path: str) -> ThreadingHTTPServer:
 
         def do_GET(self) -> None:  # noqa: N802 - nome definido pela biblioteca padrão
             status, corpo, tipo = resolver_get(self.path, base)
-            self.responder(status, corpo, tipo)
+            requisicao = urlsplit(self.path)
+            caminho = requisicao.path.rstrip("/") or "/"
+            api_path = caminho[len(base):] if base and caminho.startswith(base + "/") else caminho
+            parametros = parse_qs(requisicao.query)
+            datas = parametros.get("data", [])
+            nome_arquivo = None
+            if status == 200 and api_path == "/api/download" and len(datas) == 1:
+                # O resolvedor já validou a data e confirmou que o arquivo existe.
+                nome_arquivo = f"watchlist_{datas[0]}.md"
+            self.responder(status, corpo, tipo, nome_arquivo)
 
         def log_message(self, formato: str, *args: object) -> None:
             LOG.info("%s - %s", self.address_string(), formato % args)
