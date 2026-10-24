@@ -84,9 +84,10 @@ class TestRadar(unittest.TestCase):
             arquivo.writestr("COTAHIST.TXT", bytes(linha))
 
         with patch.object(b3.urllib.request, "urlopen", return_value=RespostaFalsa(conteudo_zip.getvalue())):
-            dados = b3.baixar_pregao(date(2026, 10, 2))
+            dados, teve_dados = b3.baixar_pregao(date(2026, 10, 2))
 
         self.assertEqual(dados, [["2026-10-02", "PETR4", 123.45, 1000, 1234.5]])
+        self.assertTrue(teve_dados)
 
     def test_rss_conta_titulos_unicos_das_ultimas_24_horas(self):
         agora = datetime(2026, 10, 4, 20, tzinfo=timezone.utc)
@@ -137,7 +138,9 @@ class TestRadar(unittest.TestCase):
         self.assertEqual(razao, 3.5)
         self.assertFalse(parcial)
 
-    def test_atencao_ignora_observacoes_parciais_e_exige_sete_completas(self):
+    def test_atencao_exige_sete_dias_nao_parciais_para_razao_valida(self):
+        """Verifica que razão só é calculada com 7 dias completos não-parciais;
+        caso contrário retorna None e parcial=True."""
         hoje = date(2026, 10, 4)
         dias = []
         dia = hoje - timedelta(days=1)
@@ -145,14 +148,39 @@ class TestRadar(unittest.TestCase):
             if dia.weekday() < 5:
                 dias.append(dia)
             dia -= timedelta(days=1)
-        historico = [
+
+        # Cenário 1: 1 dia parcial + 6 completos → 6 válidos → INSuficiente
+        historico_1_parcial = [
             {"data": data.isoformat(), "mercado": "B3", "ticker": "ABC",
              "noticias_24h": str(indice + 1), "parcial": "sim" if indice == 0 else "nao"}
             for indice, data in enumerate(dias)
         ]
-        razao, _media, parcial = atencao.calcular_razao(historico, "B3", "ABC", hoje, 14)
-        self.assertEqual(razao, 14.0)
+        razao, media, parcial = atencao.calcular_razao(historico_1_parcial, "B3", "ABC", hoje, 14)
+        self.assertIsNone(razao)
+        self.assertIsNone(media)
         self.assertTrue(parcial)
+
+        # Cenário 2: 7 dias completos, média=0, hoje=3 → razão indefinida
+        historico_zeros = [
+            {"data": data.isoformat(), "mercado": "B3", "ticker": "ABC",
+             "noticias_24h": "0", "parcial": "nao"}
+            for data in dias
+        ]
+        razao, media, parcial = atencao.calcular_razao(historico_zeros, "B3", "ABC", hoje, 3)
+        self.assertIsNone(razao)
+        self.assertEqual(media, 0.0)
+        self.assertTrue(parcial)
+
+        # Cenário 3: 7 dias completos, média=4.0, hoje=14 → razão=3.5
+        historico_normal = [
+            {"data": data.isoformat(), "mercado": "B3", "ticker": "ABC",
+             "noticias_24h": str(indice + 1), "parcial": "nao"}
+            for indice, data in enumerate(dias)
+        ]
+        razao, media, parcial = atencao.calcular_razao(historico_normal, "B3", "ABC", hoje, 14)
+        self.assertEqual(razao, 3.5)
+        self.assertEqual(media, 4.0)
+        self.assertFalse(parcial)
 
     def test_coleta_eua_exclui_split_recente(self):
         import pandas as pd

@@ -177,8 +177,16 @@ def ler_historico(caminho: Path) -> list[dict[str, str]]:
 
 def calcular_razao(
     historico: list[dict[str, str]], mercado: str, ticker: str, hoje: date, contagem: int
-) -> tuple[float, float, bool]:
-    """Compara com as sete execuções diárias anteriores, sem incluir hoje."""
+) -> tuple[float | None, float | None, bool]:
+    """Compara com as sete execuções diárias anteriores, sem incluir hoje.
+
+    Retorna (razao, media, parcial).
+    - razao: None se histórico insuficiente (<7 dias válidos) ou média=0;
+             caso contrário, contagem/media.
+    - media: None se histórico insuficiente; 0.0 se 7 dias válidos mas média=0;
+             caso contrário, média dos 7 dias.
+    - parcial: True se razao é None; False caso contrário.
+    """
     esperados: list[date] = []
     dia = hoje - timedelta(days=1)
     while len(esperados) < 7:
@@ -200,14 +208,15 @@ def calcular_razao(
         if dia in esperados_set:
             anteriores[dia] = qtd
 
-    # A agenda roda de segunda a sexta. Exige todos os sete dias esperados;
-    # uma ação fora das candidatas ou uma busca falha não vira contagem zero.
+    # Exige 7 dias válidos (não-parciais) para calcular razão.
     if len(anteriores) < 7:
-        return float(contagem), 0.0, True
+        return None, None, True
+
     media = sum(anteriores.values()) / 7
-    # Média zero não permite uma razão válida; usa a contagem atual e marca parcial.
+    # Média zero não permite uma razão válida.
     if media <= 0:
-        return float(contagem), media, True
+        return None, 0.0, True
+
     razao = float(contagem) / media
     return razao, media, False
 

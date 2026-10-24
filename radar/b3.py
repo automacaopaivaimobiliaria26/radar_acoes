@@ -28,8 +28,14 @@ DIAS_BUSCA = 130
 LOG = logging.getLogger("radar.b3")
 
 
-def baixar_pregao(dia: date) -> list[list[object]]:
-    """Baixa um arquivo diário e extrai ações do mercado à vista em lote padrão."""
+def baixar_pregao(dia: date) -> tuple[list[list[object]], bool]:
+    """Baixa um arquivo diário e extrai ações do mercado à vista em lote padrão.
+    
+    Retorna (registros, teve_dados_validos).
+    - teve_dados_validos=True: HTTP 200 e extraiu pelo menos 1 registro válido.
+    - teve_dados_validos=False: HTTP 404 (sem pregão), erro de rede, arquivo inválido,
+      ou HTTP 200 mas 0 registros extraídos (possível mudança de layout).
+    """
     url = URL_MODELO.format(data=dia.strftime("%d%m%Y"))
     pedido = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     conteudo = None
@@ -39,16 +45,15 @@ def baixar_pregao(dia: date) -> list[list[object]]:
                 conteudo = resposta.read()
             break
         except urllib.error.HTTPError as erro:
-            # Ausência do arquivo normalmente significa que não houve pregão.
             if erro.code == 404:
-                return []
+                return [], False
             if tentativa == TENTATIVAS:
                 LOG.warning("Falha ao baixar %s: %s", dia, erro)
-                return []
+                return [], False
         except (urllib.error.URLError, TimeoutError, OSError) as erro:
             if tentativa == TENTATIVAS:
                 LOG.warning("Falha ao baixar %s após tentativas: %s", dia, erro)
-                return []
+                return [], False
         if tentativa < TENTATIVAS:
             time.sleep(PAUSA_REPETICAO * tentativa)
 
@@ -58,19 +63,15 @@ def baixar_pregao(dia: date) -> list[list[object]]:
             linhas = arquivo_zip.read(nome_arquivo).decode("latin-1").splitlines()
     except (zipfile.BadZipFile, StopIteration, OSError) as erro:
         LOG.warning("Arquivo COTAHIST inválido para %s: %s", dia, erro)
-        return []
+        return [], False
 
     resultado = []
     for linha in linhas:
-        # CODBDI 02 e TPMERC 010 correspondem ao recorte usado no material de referência.
         if len(linha) < 188 or linha[:2] != "01" or linha[10:12] != "02" or linha[24:27] != "010":
             continue
-        # ESPECI DRN/DR3 identifica BDRs; manter apenas ações negociadas diretamente na B3.
         if linha[39:49].strip().upper().startswith("DR"):
             continue
         try:
-            # Índices fixos do layout oficial; preços e volume financeiro vêm em centavos.
-            # O campo de data do COTAHIST vem no formato AAAAMMDD.
             data_linha = date(int(linha[2:6]), int(linha[6:8]), int(linha[8:10]))
             ticker = linha[12:24].strip()
             fechamento = int(linha[108:121]) / 100
@@ -80,7 +81,8 @@ def baixar_pregao(dia: date) -> list[list[object]]:
             continue
         if ticker and fechamento > 0 and quantidade > 0 and volume_rs > 0:
             resultado.append([data_linha.isoformat(), ticker, fechamento, quantidade, volume_rs])
-    return resultado
+
+    return resultado, len(resultado) > 0
 
 
 def baixar_historico(
@@ -94,11 +96,32 @@ def baixar_historico(
     registros: list[list[object]] = []
     dias = set()
     dia = hoje
+    falhas_consecutivas = 0
+    
+    def eh_dia_util(d: date) -> bool:
+        return d.weekday() < 5
+    
     while len(dias) < quantidade_pregoes and (hoje - dia).days <= DIAS_BUSCA:
-        lote = baixar_pregao(dia)
+        if not eh_dia_util(dia):
+            dia -= timedelta(days=1)
+            continue
+        
+        lote, teve_dados = baixar_pregao(dia)
+        
+        if not teve_dados:
+            falhas_consecutivas += 1
+            if falhas_consecutivas >= 3:
+                raise RuntimeError(
+                    f"B3 retornou 0 ações em {falhas_consecutivas} pregões úteis consecutivos "
+                    f"(último: {dia}). Possível mudança de layout ou falha de dados."
+                )
+        else:
+            falhas_consecutivas = 0
+        
         registros.extend(lote)
         dias.update(linha[0] for linha in lote)
         dia -= timedelta(days=1)
+    
     if len(dias) < 21:
         raise RuntimeError(f"A B3 retornou apenas {len(dias)} pregões; são necessários ao menos 21.")
 
