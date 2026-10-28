@@ -306,7 +306,12 @@ def main() -> int:
         if contagem is None:
             LOG.warning("%s (%s): RSS indisponível; linha marcada como parcial", ticker, mercado)
         else:
-            LOG.info("%s (%s): %d manchetes, atenção %s%s", ticker, mercado, contagem, f"{razao:.3f}", " (parcial)" if parcial else "")
+            atencao_texto = f"{razao:.3f}" if isinstance(razao, (int, float)) else "indisponível"
+            sufixo = " (parcial)" if parcial else ""
+            LOG.info(
+                "%s (%s): %d manchetes, atenção %s%s",
+                ticker, mercado, contagem, atencao_texto, sufixo,
+            )
 
     try:
         salvar_historico(args.historico, historico, novas)
