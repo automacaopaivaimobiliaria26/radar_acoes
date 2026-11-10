@@ -1,4 +1,4 @@
-"""Prepara as 60 ações com maior volume relativo para a consulta de notícias."""
+"""Prepara até 60 ações por mercado para a consulta de notícias."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def preparar(
     destino: Path = ARQUIVO_CANDIDATAS,
     limite: int = MAX_ACOES_NOTICIAS,
 ) -> list[dict[str, object]]:
-    """Ordena B3 e EUA juntos por volume relativo e salva o CSV de entrada do RSS."""
+    """Seleciona as maiores razões de volume por mercado e salva o CSV do RSS."""
     series_b3 = carregar_precos(arquivo_b3, "B3") if arquivo_b3.exists() else {}
     series_eua = carregar_precos(arquivo_eua, "EUA") if arquivo_eua.exists() else {}
     candidatas = []
@@ -48,8 +48,14 @@ def preparar(
                 "data": referencia,
             })
 
-    candidatas.sort(key=lambda item: (-item["volume_relativo"], item["mercado"], item["ticker"]))
-    selecionadas = candidatas[:limite]
+    selecionadas = []
+    for mercado in ("B3", "EUA"):
+        do_mercado = sorted(
+            (item for item in candidatas if item["mercado"] == mercado),
+            key=lambda item: (-item["volume_relativo"], item["ticker"]),
+        )
+        selecionadas.extend(do_mercado[:limite])
+    selecionadas.sort(key=lambda item: (-item["volume_relativo"], item["mercado"], item["ticker"]))
     destino.parent.mkdir(parents=True, exist_ok=True)
     temporario = destino.with_suffix(destino.suffix + ".tmp")
     with temporario.open("w", newline="", encoding="utf-8") as arquivo:

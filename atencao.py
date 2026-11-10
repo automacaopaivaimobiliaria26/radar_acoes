@@ -114,7 +114,17 @@ def ler_candidatas(caminho: Path, limite: int = MAX_ACOES) -> list[dict[str, str
         chave = (candidata["mercado"], candidata["ticker"])
         if chave not in unicas or candidata["volume_relativo"] > unicas[chave]["volume_relativo"]:
             unicas[chave] = candidata
-    return sorted(unicas.values(), key=lambda item: item["volume_relativo"], reverse=True)[:limite]
+    selecionadas: list[dict[str, str]] = []
+    for mercado in ("B3", "EUA"):
+        do_mercado = sorted(
+            (item for item in unicas.values() if item["mercado"] == mercado),
+            key=lambda item: (-item["volume_relativo"], item["ticker"]),
+        )
+        selecionadas.extend(do_mercado[:limite])
+    return sorted(
+        selecionadas,
+        key=lambda item: (-item["volume_relativo"], item["mercado"], item["ticker"]),
+    )
 
 
 def consulta_rss(candidata: dict[str, str], agora: datetime, nome_empresa: str = "") -> int | None:
@@ -238,10 +248,10 @@ def salvar_historico(caminho: Path, historico: list[dict[str, str]], novas: list
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Conta notícias recentes para as 60 maiores candidatas por volume relativo.")
+    parser = argparse.ArgumentParser(description="Conta notícias para até 60 candidatas por mercado, ordenadas por volume relativo.")
     parser.add_argument("--entrada", type=Path, default=ARQUIVO_CANDIDATAS, help="CSV com mercado,ticker,volume_relativo.")
     parser.add_argument("--historico", type=Path, default=ARQUIVO_HISTORICO, help="CSV de histórico (padrão: dados/atencao_hist.csv).")
-    parser.add_argument("--limite", type=int, default=MAX_ACOES, help="Máximo de ações consultadas (padrão: 60).")
+    parser.add_argument("--limite", type=int, default=MAX_ACOES, help="Máximo de ações consultadas por mercado (padrão: 60; até 120 no total).")
     args = parser.parse_args()
     if args.limite < 1:
         parser.error("--limite deve ser maior que zero")
