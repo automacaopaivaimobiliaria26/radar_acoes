@@ -1,19 +1,16 @@
-"""Prepara até 60 ações por mercado para a consulta de notícias."""
+"""Prepara até 60 ações por mercado pela classificação preliminar."""
 
 from __future__ import annotations
 
 import csv
 from pathlib import Path
 
-from nota import carregar_precos, indicadores
+from nota import carregar_precos, montar_mercado
 from .config import (
     ARQUIVO_B3,
     ARQUIVO_CANDIDATAS,
     ARQUIVO_EUA,
     MAX_ACOES_NOTICIAS,
-    MINIMO_LIQUIDEZ_B3,
-    MINIMO_LIQUIDEZ_EUA,
-    MINIMO_PRECO_EUA,
 )
 
 
@@ -23,38 +20,22 @@ def preparar(
     destino: Path = ARQUIVO_CANDIDATAS,
     limite: int = MAX_ACOES_NOTICIAS,
 ) -> list[dict[str, object]]:
-    """Seleciona as maiores razões de volume por mercado e salva o CSV do RSS."""
+    """Seleciona por mercado as melhores notas sem notícias e salva o CSV do RSS."""
     series_b3 = carregar_precos(arquivo_b3, "B3") if arquivo_b3.exists() else {}
     series_eua = carregar_precos(arquivo_eua, "EUA") if arquivo_eua.exists() else {}
-    candidatas = []
-    for mercado, series in (("B3", series_b3), ("EUA", series_eua)):
-        datas = [registro["data"] for serie in series.values() for registro in serie]
-        if not datas:
-            continue
-        referencia = max(datas)
-        for ticker, serie in series.items():
-            metricas = indicadores(serie, referencia)
-            if metricas is None:
-                continue
-            limite_liquidez = MINIMO_LIQUIDEZ_B3 if mercado == "B3" else MINIMO_LIQUIDEZ_EUA
-            if metricas["media_volume_20"] < limite_liquidez:
-                continue
-            if mercado == "EUA" and metricas["fechamento"] <= MINIMO_PRECO_EUA:
-                continue
-            candidatas.append({
-                "mercado": mercado,
-                "ticker": ticker,
-                "volume_relativo": metricas["volume_relativo"],
-                "data": referencia,
-            })
-
     selecionadas = []
-    for mercado in ("B3", "EUA"):
-        do_mercado = sorted(
-            (item for item in candidatas if item["mercado"] == mercado),
-            key=lambda item: (-item["volume_relativo"], item["ticker"]),
-        )
-        selecionadas.extend(do_mercado[:limite])
+    for mercado, series in (("B3", series_b3), ("EUA", series_eua)):
+        _referencia, classificacao = montar_mercado(mercado, series, {})
+        do_mercado = [
+            {
+                "mercado": mercado,
+                "ticker": item["ticker"],
+                "volume_relativo": item["volume_relativo"],
+                "data": item["data"],
+            }
+            for item in classificacao[:limite]
+        ]
+        selecionadas.extend(do_mercado)
     selecionadas.sort(key=lambda item: (-item["volume_relativo"], item["mercado"], item["ticker"]))
     destino.parent.mkdir(parents=True, exist_ok=True)
     temporario = destino.with_suffix(destino.suffix + ".tmp")

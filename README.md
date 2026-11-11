@@ -11,7 +11,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 │   ├── b3.py           # baixa COTAHIST e grava somente b3.csv
 │   ├── eua.py          # interface para o coletor de preços dos EUA
 │   ├── noticias.py     # interface para a coleta RSS e histórico
-│   ├── candidatas.py   # seleciona até 60 maiores volumes relativos por mercado
+│   ├── candidatas.py   # seleciona até 60 melhores notas preliminares por mercado
 │   ├── calculo.py      # interface para indicadores e percentis
 │   ├── watchlist.py    # interface para os relatórios Markdown e CSV
 │   └── main.py         # orquestra a sequência completa
@@ -68,8 +68,8 @@ O comando executa estas etapas em sequência:
 
 1. Baixa até 60 pregões recentes da B3 pelo COTAHIST diário.
 2. Baixa o histórico diário das ações selecionadas das listas da Nasdaq Trader e filtra preço acima de US$ 5 e média de volume financeiro acima de US$ 5 milhões.
-3. Seleciona até 60 ações por mercado (B3 e EUA), até 120 no total, e consulta as manchetes no RSS do Google Notícias.
-4. Calcula volume relativo, retornos de 5 e 20 pregões, percentis separados por mercado e a nota ponderada. Na B3, BDRs e ações com salto absoluto superior a 40% em uma das últimas 20 variações são excluídos. Nos EUA, ações com split informado recentemente ou salto superior a 40% em 20 variações são excluídas até revisão, para reduzir distorções de eventos corporativos.
+3. Classifica cada mercado sem a componente de notícias, seleciona até 60 ações por nota preliminar (até 120 no total) e consulta as manchetes no RSS do Google Notícias.
+4. Calcula percentis com o universo completo de cada mercado, mas publica as 15 melhores ações por nota final dentro do grupo consultado. Assim, cada ação publicada tem uma contagem RSS ou fica explicitamente marcada como indisponível se a consulta falhar. Na B3, BDRs e ações com salto absoluto superior a 40% em uma das últimas 20 variações são excluídos. Nos EUA, ações com split informado recentemente ou salto superior a 40% em 20 variações são excluídas até revisão, para reduzir distorções de eventos corporativos.
 5. Salva `saida/watchlist_AAAA-MM-DD.md` e `saida/watchlist_AAAA-MM-DD.csv`, além de registrar a execução em `logs/radar.log`.
 
 Se a atualização de um mercado falhar, o Radar tenta gerar uma watchlist com o histórico daquele mercado já existente e o mercado que conseguiu atualizar. Se a etapa de notícias falhar, gera a watchlist com os componentes disponíveis. A execução fica registrada como incompleta (código diferente de zero e sem atualizar `ultimo_sucesso.txt`); confira o log antes de considerar a saída completa. A ausência de um dos CSVs de cotações omite esse mercado em vez de interromper o outro.

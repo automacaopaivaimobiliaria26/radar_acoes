@@ -248,7 +248,7 @@ def salvar_historico(caminho: Path, historico: list[dict[str, str]], novas: list
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Conta notícias para até 60 candidatas por mercado, ordenadas por volume relativo.")
+    parser = argparse.ArgumentParser(description="Conta notícias para até 60 candidatas pré-selecionadas por mercado.")
     parser.add_argument("--entrada", type=Path, default=ARQUIVO_CANDIDATAS, help="CSV com mercado,ticker,volume_relativo.")
     parser.add_argument("--historico", type=Path, default=ARQUIVO_HISTORICO, help="CSV de histórico (padrão: dados/atencao_hist.csv).")
     parser.add_argument("--limite", type=int, default=MAX_ACOES, help="Máximo de ações consultadas por mercado (padrão: 60; até 120 no total).")

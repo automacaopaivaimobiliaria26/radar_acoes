@@ -273,7 +273,7 @@ def gravar_watchlist(caminho: Path, resultados: dict[str, tuple[date | None, lis
         "# Radar de pesquisa. Nao e recomendacao de investimento.",
         "",
         "Notas calculadas somente com dados disponíveis até a data de referência de cada mercado.",
-        "Percentis e notas são calculados separadamente para B3 e EUA.",
+        "Percentis são calculados separadamente sobre o universo completo de cada mercado; a lista final ranqueia as candidatas consultadas.",
         "",
     ]
     for mercado in ("B3", "EUA"):
@@ -346,6 +346,7 @@ def main() -> int:
     parser.add_argument("--b3", type=Path, default=ARQUIVO_B3, help="CSV de preços da B3 (padrão: b3.csv).")
     parser.add_argument("--eua", type=Path, default=ARQUIVO_EUA, help="CSV de preços dos EUA (padrão: eua.csv).")
     parser.add_argument("--atencao", type=Path, default=ARQUIVO_ATENCAO, help="Histórico de notícias (padrão: atencao_hist.csv).")
+    parser.add_argument("--candidatas", type=Path, help="Limita a watchlist às ações selecionadas para consulta de notícias.")
     parser.add_argument("--data", type=date.fromisoformat, help="Data de referência AAAA-MM-DD para reproduzir uma watchlist histórica.")
     parser.add_argument("--data-atencao", type=date.fromisoformat,
                         help="Data da coleta de notícias (padrão: --data, ou hoje na execução normal).")
@@ -371,10 +372,37 @@ def main() -> int:
     if not series_b3 and not series_eua:
         LOG.error("Não há cotações válidas nos CSVs de entrada.")
         return 1
+
+    tickers_candidatas: dict[str, set[str]] | None = None
+    if args.candidatas:
+        try:
+            with args.candidatas.open("r", newline="", encoding="utf-8-sig") as arquivo:
+                tickers_candidatas = {"B3": set(), "EUA": set()}
+                for linha in csv.DictReader(arquivo):
+                    mercado = (linha.get("mercado") or linha.get("market") or "").strip().upper()
+                    if mercado == "US":
+                        mercado = "EUA"
+                    ticker = (linha.get("ticker") or linha.get("symbol") or "").strip().upper()
+                    if mercado in tickers_candidatas and ticker:
+                        tickers_candidatas[mercado].add(ticker)
+        except (OSError, UnicodeError, csv.Error) as erro:
+            LOG.error("Não foi possível ler candidatas %s: %s", args.candidatas, erro)
+            return 1
+        if not any(tickers_candidatas.values()):
+            LOG.error("Nenhuma candidata válida em %s.", args.candidatas)
+            return 1
+
     atencao = carregar_atencao(args.atencao)
     data_atencao = args.data_atencao or args.data or date.today()
     data_b3, lista_b3 = montar_mercado("B3", series_b3, atencao, args.data, data_atencao)
     data_eua, lista_eua = montar_mercado("EUA", series_eua, atencao, args.data, data_atencao)
+    if tickers_candidatas is not None:
+        lista_b3 = [item for item in lista_b3 if item["ticker"] in tickers_candidatas["B3"]]
+        lista_eua = [item for item in lista_eua if item["ticker"] in tickers_candidatas["EUA"]]
+        LOG.info(
+            "Watchlist restrita às ações consultadas: %d B3 e %d EUA.",
+            len(lista_b3), len(lista_eua),
+        )
     referencias = [dia for dia in (data_b3, data_eua) if dia is not None]
     if not referencias:
         LOG.error("Não há cotações válidas nos CSVs de entrada.")

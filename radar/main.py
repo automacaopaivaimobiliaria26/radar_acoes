@@ -129,7 +129,8 @@ def executar(limite_eua: int | None = None) -> Path:
         watchlist = PASTA_SAIDA / f"watchlist_{data_execucao.isoformat()}.md"
         executar_comando(logger, "cálculo de notas e watchlist", [
             python, str(RAIZ / "nota.py"), "--b3", str(ARQUIVO_B3), "--eua", str(ARQUIVO_EUA),
-            "--atencao", str(ARQUIVO_ATENCAO), "--data-atencao", data_execucao.isoformat(), "--saida", str(watchlist),
+            "--atencao", str(ARQUIVO_ATENCAO), "--candidatas", str(ARQUIVO_CANDIDATAS),
+            "--data-atencao", data_execucao.isoformat(), "--saida", str(watchlist),
         ])
         if etapas_com_erro:
             raise RuntimeError(
