@@ -19,7 +19,6 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 ├── dados/              # arquivos CSV gerados durante as coletas
 ├── logs/               # radar.log
 ├── saida/              # watchlists Markdown/CSV e relatórios de validação
-├── watchlist/          # watchlists Markdown arquivadas por pregão
 ├── deploy/             # entrypoint e agenda cron da imagem
 ├── tests/              # testes sem chamadas externas
 ├── Dockerfile          # imagem Python e cron para EasyPanel
@@ -34,7 +33,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 └── requirements.txt
 ```
 
-Os históricos gerados, logs e arquivos de execução em `saida/` ficam fora do controle de versão por padrão. A pasta `watchlist/` guarda cópias arquivadas das watchlists Markdown por pregão e faz parte do projeto. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). As buscas de notícias usam ticker e nome empresarial obtido dos cadastros locais em `referencias/`; esses nomes não são acrescentados aos históricos de cotações nem às watchlists. O dashboard também lê esses cadastros para completar empresa, bolsa e descrição quando apresenta uma watchlist. O Radar não baixa nem grava esses dados empresariais durante a coleta.
+Os históricos gerados, logs e arquivos de execução em `saida/` ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). As buscas de notícias usam ticker e nome empresarial obtido dos cadastros locais em `referencias/`; esses nomes não são acrescentados aos históricos de cotações nem às watchlists. O dashboard também lê esses cadastros para completar empresa, bolsa e descrição quando apresenta uma watchlist. O Radar não baixa nem grava esses dados empresariais durante a coleta.
 
 ## Instalação no Ubuntu
 
