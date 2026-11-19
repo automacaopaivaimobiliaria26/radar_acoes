@@ -19,6 +19,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 ├── dados/              # arquivos CSV gerados durante as coletas
 ├── logs/               # radar.log
 ├── saida/              # watchlists Markdown/CSV e relatórios de validação
+├── watchlist/          # watchlists Markdown arquivadas por pregão
 ├── deploy/             # entrypoint e agenda cron da imagem
 ├── tests/              # testes sem chamadas externas
 ├── Dockerfile          # imagem Python e cron para EasyPanel
@@ -33,7 +34,7 @@ Radar diário para organizar volume, preço e manchetes de ações da B3 e dos E
 └── requirements.txt
 ```
 
-Os históricos gerados, logs e watchlists ficam fora do controle de versão por padrão. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). As buscas de notícias usam ticker e nome empresarial obtido dos cadastros locais em `referencias/`; esses nomes não são acrescentados aos históricos de cotações nem às watchlists. O dashboard também lê esses cadastros para completar empresa, bolsa e descrição quando apresenta uma watchlist. O Radar não baixa nem grava esses dados empresariais durante a coleta.
+Os históricos gerados, logs e arquivos de execução em `saida/` ficam fora do controle de versão por padrão. A pasta `watchlist/` guarda cópias arquivadas das watchlists Markdown por pregão e faz parte do projeto. `b3.csv` e `eua.csv` têm as colunas `data`, `ticker`, `fechamento`, `quantidade` e volume financeiro (`volume_rs` na B3; `volume` nos EUA). As buscas de notícias usam ticker e nome empresarial obtido dos cadastros locais em `referencias/`; esses nomes não são acrescentados aos históricos de cotações nem às watchlists. O dashboard também lê esses cadastros para completar empresa, bolsa e descrição quando apresenta uma watchlist. O Radar não baixa nem grava esses dados empresariais durante a coleta.
 
 ## Instalação no Ubuntu
 
@@ -135,7 +136,7 @@ O fixture usa dados ilustrativos e não deve ser interpretado como coleta ou rec
 
 Ative o auto deploy do GitHub se quiser que cada push faça um novo deploy. Os volumes sobrevivem à recriação do container, mas não substituem backup do VPS. Inclua principalmente `radar_dados`, pois ele guarda o histórico de atenção e as cotações usadas nas análises; a documentação do EasyPanel recomenda definir recuperação para volumes declarados em Compose.
 
-O dashboard lista os arquivos `watchlist_AAAA-MM-DD.md` em `/app/saida`, abre por padrão o mais recente e permite selecionar datas anteriores. Os cartões e tabelas são montados diretamente a partir das tabelas Markdown, sem alterar os arquivos gerados pelo Radar. Clique em um ticker na tabela, nos cartões de maior nota ou no gráfico de barras para abrir a visão individual do ativo. Essa visão carrega sob demanda o Advanced Chart do TradingView, com gráfico diário, volume, indicador de volume de 24 horas, barra de ferramentas e controles avançados, e fornece um botão para voltar à watchlist. O símbolo da B3 usa o prefixo `BMFBOVESPA`; nos EUA, a bolsa do cadastro local determina `NASDAQ`, `NYSE` ou `AMEX`. O widget exige conexão com `s3.tradingview.com`; disponibilidade e atraso dos dados dependem da bolsa e do TradingView. Se a bolsa não estiver no cadastro ou o componente externo não carregar, o dashboard oferece a busca ou o gráfico do ticker no site do TradingView.
+O dashboard lista os arquivos `watchlist_AAAA-MM-DD.md` em `/app/saida`, abre por padrão o mais recente e permite selecionar datas anteriores. Os cartões e tabelas são montados diretamente a partir das tabelas Markdown, sem alterar os arquivos gerados pelo Radar. A navegação **Resultados** abre uma página que agrega os tickers de todas as watchlists e mostra, para B3 e EUA separadamente, minigráficos de Nota, volume relativo e retornos de 5 e 20 pregões. A busca por ticker/empresa e o intervalo de datas filtram a tabela; cada ação pode ser expandida para consultar seus valores por data. Datas em que o ticker não aparece permanecem como lacunas, sem preenchimento com zero. O retorno de 20 pregões é extraído do campo “Motivo” das watchlists. Clique em um ticker na tabela, nos cartões de maior nota ou no gráfico de barras da página Watchlists para abrir a visão individual do ativo. Essa visão carrega sob demanda o Advanced Chart do TradingView, com gráfico diário, volume, indicador de volume de 24 horas, barra de ferramentas e controles avançados, e fornece um botão para voltar à watchlist. O símbolo da B3 usa o prefixo `BMFBOVESPA`; nos EUA, a bolsa do cadastro local determina `NASDAQ`, `NYSE` ou `AMEX`. O widget exige conexão com `s3.tradingview.com`; disponibilidade e atraso dos dados dependem da bolsa e do TradingView. Se a bolsa não estiver no cadastro ou o componente externo não carregar, o dashboard oferece a busca ou o gráfico do ticker no site do TradingView.
 
 Para recalcular uma watchlist histórica usando os CSVs já presentes no volume persistente, informe a data do pregão. O arquivo de saída com essa data é substituído atomicamente ao final do cálculo:
 

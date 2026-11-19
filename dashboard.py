@@ -238,6 +238,8 @@ def listar_datas() -> list[str]:
 def html_dashboard(base_path: str) -> str:
     """Página responsiva com filtros, cartões, gráficos de barras e tabelas."""
     base_json = json.dumps(base_path)
+    href_watchlists = base_path + "/" if base_path else "/"
+    href_resultados = (base_path or "") + "/resultados"
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -255,6 +257,9 @@ def html_dashboard(base_path: str) -> str:
     h1 {{ margin:5px 0 4px; font-size:clamp(27px,4vw,38px); letter-spacing:-.04em }}
     header p {{ margin:0; color:#c5d5dd }}
     .header-mark {{ width:62px; height:62px; border:1px solid #5a8994; border-radius:18px; display:grid; place-items:center; font-size:30px; color:#a6e4dc; flex:0 0 auto }}
+    .main-nav {{ display:flex; gap:8px; margin:18px 0 4px; border-bottom:1px solid var(--line) }}
+    .nav-link {{ display:inline-block; padding:10px 15px; color:var(--muted); font-weight:800; text-decoration:none; border-bottom:3px solid transparent }}
+    .nav-link:hover,.nav-link.active {{ color:var(--teal); border-color:var(--teal) }}
     .toolbar {{ display:flex; justify-content:space-between; align-items:end; gap:18px; flex-wrap:wrap; margin:26px 0 18px }}
     .toolbar label {{ display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em }}
     select {{ min-width:220px; border:1px solid var(--line); border-radius:11px; padding:12px 42px 12px 14px; background:#fff; color:var(--ink); font:inherit; font-weight:700 }}
@@ -318,6 +323,7 @@ def html_dashboard(base_path: str) -> str:
 <body>
 <main class="shell" id="app">
   <header><div><div class="eyebrow">Painel de pesquisa</div><h1>Radar de Ações</h1><p>Volume, momento e atenção em um só lugar.</p></div><div class="header-mark" aria-hidden="true">⌁</div></header>
+  <nav class="main-nav" aria-label="Navegação principal"><a class="nav-link active" href="{href_watchlists}">Watchlists</a><a class="nav-link" href="{href_resultados}">Resultados</a></nav>
   <div class="toolbar" id="watchlistToolbar"><label>Data da watchlist<select id="dateSelect" aria-label="Selecione o dia da watchlist"></select></label><div class="toolbar-actions"><button class="download-button" id="downloadButton" type="button" disabled>Baixar watchlist (.md)</button><div class="asof" id="asof">Carregando arquivos…</div></div></div>
   <div class="notice">Ferramenta de estudo. Não é recomendação de investimento e não executa operações. Notas marcadas como parciais usam dados incompletos.</div>
   <section class="panel chart-view" id="chartView" hidden aria-labelledby="chartTitle">
@@ -495,6 +501,110 @@ iniciar();
 </body></html>"""
 
 
+def montar_resultados() -> dict[str, object]:
+    """Agrega as observações de cada ação em todos os arquivos de watchlist."""
+    datas = sorted(listar_datas())
+    mercados: dict[str, dict[str, dict[str, object]]] = {"B3": {}, "EUA": {}}
+    for data in datas:
+        arquivo = PASTA_SAIDA / f"watchlist_{data}.md"
+        try:
+            watchlist = ler_watchlist(arquivo)
+        except (OSError, UnicodeError, ValueError) as erro:
+            LOG.exception("Falha ao agregar resultados de %s: %s", arquivo, erro)
+            continue
+        dados_mercados = watchlist.get("mercados", {})
+        for mercado in ("B3", "EUA"):
+            dados_mercado = dados_mercados.get(mercado, {})
+            acoes = dados_mercado.get("acoes", [])
+            for acao in acoes:
+                ticker = str(acao.get("ticker") or "").strip().upper()
+                if not ticker:
+                    continue
+                registro = mercados[mercado].setdefault(ticker, {
+                    "ticker": ticker,
+                    "empresa": acao.get("empresa") or "—",
+                    "bolsa": acao.get("bolsa") or "—",
+                    "observacoes": {},
+                })
+                if registro.get("empresa") in (None, "", "—") and acao.get("empresa"):
+                    registro["empresa"] = acao["empresa"]
+                if registro.get("bolsa") in (None, "", "—") and acao.get("bolsa"):
+                    registro["bolsa"] = acao["bolsa"]
+                observacoes = registro["observacoes"]
+                assert isinstance(observacoes, dict)
+                observacoes[data] = {
+                    "nota": acao.get("nota"),
+                    "parcial": bool(acao.get("parcial")),
+                    "volume_relativo": acao.get("volume_relativo"),
+                    "retorno_5": acao.get("retorno_5"),
+                    "retorno_20": acao.get("retorno_20"),
+                }
+
+    resultado: dict[str, object] = {"datas": datas, "mercados": {}}
+    saida_mercados = resultado["mercados"]
+    assert isinstance(saida_mercados, dict)
+    for mercado, acoes in mercados.items():
+        lista = []
+        for ticker, registro in acoes.items():
+            observacoes = registro.pop("observacoes")
+            assert isinstance(observacoes, dict)
+            registro["serie"] = [
+                {"data": data, **observacoes[data]} if data in observacoes else {
+                    "data": data,
+                    "nota": None,
+                    "parcial": False,
+                    "volume_relativo": None,
+                    "retorno_5": None,
+                    "retorno_20": None,
+                }
+                for data in datas
+            ]
+            lista.append(registro)
+        lista.sort(key=lambda item: item["ticker"])
+        saida_mercados[mercado] = lista
+    return resultado
+
+
+def html_resultados(base_path: str) -> str:
+    """Página histórica com evolução por ativo e por indicador."""
+    return r'''<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Evolução histórica das ações que apareceram nas watchlists do Radar.">
+<title>Radar de Ações | Resultados</title>
+<style>
+:root{color-scheme:light;--ink:#152a3b;--muted:#6b7d8c;--line:#e3eaf0;--paper:#f4f7fa;--white:#fff;--navy:#102b40;--teal:#087f8c;--teal-light:#e3f5f4;--green:#247a5a;--red:#bb5360;--shadow:0 12px 32px rgba(24,48,68,.07)}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.shell{max-width:1500px;margin:auto;padding:30px clamp(14px,4vw,56px) 56px}header{display:flex;justify-content:space-between;align-items:center;gap:24px;color:#fff;background:linear-gradient(120deg,#102b40,#17485b);border-radius:24px;padding:27px 32px;box-shadow:var(--shadow)}
+.eyebrow{color:#9ed8d6;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}h1{margin:5px 0 4px;font-size:clamp(27px,4vw,38px);letter-spacing:-.04em}header p{margin:0;color:#c5d5dd}.header-mark{width:58px;height:58px;border:1px solid #5a8994;border-radius:18px;display:grid;place-items:center;font-size:29px;color:#a6e4dc;flex:0 0 auto}
+.main-nav{display:flex;gap:8px;margin:18px 0 20px;border-bottom:1px solid var(--line)}.nav-link{display:inline-block;padding:10px 15px;color:var(--muted);font-weight:800;text-decoration:none;border-bottom:3px solid transparent}.nav-link:hover,.nav-link.active{color:var(--teal);border-color:var(--teal)}
+.notice{padding:12px 15px;margin:0 0 18px;border:1px solid #cce6e5;border-radius:12px;color:#275c60;background:#f0fbfa;font-size:13px}.toolbar{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}.filters{display:flex;align-items:end;gap:10px;flex-wrap:wrap}.field{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.field input,.field select{min-height:40px;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;background:#fff;color:var(--ink);font:inherit;font-weight:650}.field.search input{min-width:220px}.period{color:var(--muted);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.card{padding:15px 17px;min-height:96px}.card-label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.card-value{margin-top:7px;font-size:25px;font-weight:850;letter-spacing:-.03em;line-height:1}.card-detail{margin-top:5px;color:var(--muted);font-size:12px}
+.market-tabs{display:flex;gap:8px;margin:18px 0 12px}.market-tab{border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 17px;color:var(--muted);font:inherit;font-weight:800;cursor:pointer}.market-tab.active{background:var(--navy);border-color:var(--navy);color:#fff}.table-panel{overflow:hidden}.table-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:18px 20px 10px}.table-heading h2{margin:0;font-size:19px}.table-heading p{margin:3px 0 0;color:var(--muted);font-size:12px}.market-tag{padding:5px 9px;border-radius:999px;background:var(--teal-light);color:#126b72;font-size:10px;font-weight:850;letter-spacing:.08em}
+.table-wrap{overflow:auto;padding:0 12px 12px}table{width:100%;min-width:1030px;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;z-index:1;padding:10px 9px;border-bottom:1px solid var(--line);background:#fff;color:var(--muted);text-align:left;font-size:10px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}td{padding:10px 9px;border-bottom:1px solid #edf1f4;vertical-align:middle}tbody tr:hover{background:#f8fbfc}.ticker{font-weight:850;color:var(--navy);white-space:nowrap}.company{min-width:140px;color:var(--muted);font-size:11px}.latest{font-variant-numeric:tabular-nums;font-weight:800;text-align:right;white-space:nowrap}.metric-cell{min-width:150px}.spark-wrap{display:flex;align-items:center;gap:7px}.spark{display:block;width:92px;height:34px;overflow:visible}.spark-value{min-width:48px;text-align:right;font-variant-numeric:tabular-nums;font-weight:750;white-space:nowrap}.positive{color:var(--green)}.negative{color:var(--red)}.partial{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:99px;background:#fff2dc;color:#8a5c17;font-size:9px;font-weight:800;vertical-align:middle}.expand{border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--teal);font:inherit;font-weight:800;cursor:pointer;padding:5px 8px}.detail-row td{padding:0 15px 15px;background:#f8fbfc}.history{width:100%;min-width:0;margin-top:10px}.history th{position:static;background:#f8fbfc}.history td,.history th{padding:7px 9px}.empty{padding:25px;color:var(--muted);text-align:center}.error{padding:16px;border:1px solid #edc8cb;border-radius:12px;background:#fff4f4;color:#8b3441}.footer{margin-top:15px;color:var(--muted);font-size:11px}
+@media(max-width:960px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{width:100%}}@media(max-width:600px){.shell{padding:13px 10px 30px}header{padding:21px 18px;border-radius:17px}.header-mark{width:45px;height:45px}.cards{gap:8px}.card{padding:12px;min-height:88px}.card-value{font-size:21px}.filters{display:grid;grid-template-columns:1fr 1fr}.field.search{grid-column:1/-1}.field.search input{min-width:0}.period{width:100%}.table-heading{padding:15px 14px 8px}}
+</style></head><body><main class="shell" id="app">
+<header><div><div class="eyebrow">Histórico das watchlists</div><h1>Resultados</h1><p>Acompanhe a evolução dos indicadores por ação.</p></div><div class="header-mark" aria-hidden="true">↗</div></header>
+<nav class="main-nav" aria-label="Navegação principal"><a class="nav-link" id="watchlistLink">Watchlists</a><a class="nav-link active" id="resultsLink">Resultados</a></nav>
+<div class="notice">Cada ponto corresponde a uma watchlist em que a ação apareceu. Ausência em uma data é exibida como lacuna, sem assumir valor zero.</div>
+<section class="toolbar"><div class="filters"><label class="field search">Buscar ação<input id="search" type="search" placeholder="Ticker ou empresa"></label><label class="field">De<input id="from" type="date"></label><label class="field">Até<input id="to" type="date"></label><label class="field">Ordenar<select id="sort"><option value="ticker">Ticker (A–Z)</option><option value="nota">Nota mais alta</option><option value="volume_relativo">Vol. relativo</option><option value="retorno_5">Ret. 5 pregões</option><option value="retorno_20">Ret. 20 pregões</option></select></label></div><div id="period" class="period"></div></section>
+<section id="cards" class="cards"></section><div class="market-tabs" role="tablist"><button class="market-tab active" data-market="B3" role="tab">B3</button><button class="market-tab" data-market="EUA" role="tab">EUA</button></div>
+<section class="panel table-panel"><div class="table-heading"><div><h2 id="marketTitle">B3</h2><p id="tableCaption"></p></div><span id="marketTag" class="market-tag">BRASIL</span></div><div class="table-wrap" id="tableWrap"></div></section>
+<div class="footer">Retornos são os valores registrados nas watchlists. Notas parciais permanecem sinalizadas.</div></main>
+<script>
+const BASE=__BASE__,METRICS=[['nota','Nota'],['volume_relativo','Vol. relativo'],['retorno_5','Ret. 5 pregões'],['retorno_20','Ret. 20 pregões']];let dados=null,mercadoAtual='B3';
+const $=s=>document.querySelector(s),esc=x=>String(x??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function label(metric,v){if(v==null)return '—';if(metric==='nota')return new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1}).format(v);if(metric==='volume_relativo')return `${new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(v)}x`;return `${v>=0?'+':''}${new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v*100)}%`}
+function datasVisiveis(){const a=$('#from').value,b=$('#to').value;return dados.datas.filter(d=>(!a||d>=a)&&(!b||d<=b))}
+function observacaoAtual(acao,dates){const ok=new Set(dates);return [...acao.serie].reverse().find(o=>ok.has(o.data)&&o.nota!=null)||null}
+function spark(serie,metric,dates){const pontos=dates.map(d=>serie.find(x=>x.data===d)).map(x=>x&&x[metric]!=null?x[metric]:null),w=92,h=34,p=3,vals=pontos.filter(x=>x!=null);if(!vals.length)return '<svg class="spark" viewBox="0 0 92 34" aria-label="Sem observações no período"></svg>';let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=Math.abs(lo||1)*.08;hi+=Math.abs(hi||1)*.08}const xy=(v,i)=>[p+(dates.length<=1?0:i*(w-2*p)/(dates.length-1)),h-p-(v-lo)/(hi-lo)*(h-2*p)];let seg=[],segments=[];pontos.forEach((v,i)=>{if(v==null){if(seg.length)segments.push(seg);seg=[]}else seg.push(xy(v,i))});if(seg.length)segments.push(seg);const d=segments.map(s=>s.map((q,i)=>`${i?'L':'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ')).join(' ');const last=segments.at(-1).at(-1);return `<svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Evolução de ${esc(METRICS.find(m=>m[0]===metric)[1])}"><path d="${d}" fill="none" stroke="#087f8c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.5" fill="#087f8c"/></svg>`}
+function historyRows(acao,dates){const rows=dates.slice().reverse().map(d=>{const o=acao.serie.find(x=>x.data===d);if(!o||o.nota==null)return '';return `<tr><td>${esc(d)}</td><td class="latest">${label('nota',o.nota)}${o.parcial?'<span class="partial">parcial</span>':''}</td><td class="latest">${label('volume_relativo',o.volume_relativo)}</td><td class="latest ${o.retorno_5>=0?'positive':'negative'}">${label('retorno_5',o.retorno_5)}</td><td class="latest ${o.retorno_20==null?'':o.retorno_20>=0?'positive':'negative'}">${label('retorno_20',o.retorno_20)}</td></tr>`}).filter(Boolean).join('');return `<table class="history"><thead><tr><th>Data da watchlist</th><th>Nota</th><th>Vol. relativo</th><th>Ret. 5 pregões</th><th>Ret. 20 pregões</th></tr></thead><tbody>${rows||'<tr><td colspan="5">Sem observações neste período.</td></tr>'}</tbody></table>`}
+function render(){if(!dados)return;const dates=datasVisiveis(),all=dados.mercados[mercadoAtual]||[],query=$('#search').value.trim().toLocaleLowerCase('pt-BR'),metricSort=$('#sort').value;let stocks=all.filter(a=>!query||a.ticker.toLocaleLowerCase('pt-BR').includes(query)||(a.empresa||'').toLocaleLowerCase('pt-BR').includes(query));stocks.sort((a,b)=>{if(metricSort==='ticker')return a.ticker.localeCompare(b.ticker);const av=observacaoAtual(a,dates)?.[metricSort],bv=observacaoAtual(b,dates)?.[metricSort];return (bv??-Infinity)-(av??-Infinity)||a.ticker.localeCompare(b.ticker)});const observations=all.reduce((n,a)=>n+a.serie.filter(o=>dates.includes(o.data)&&o.nota!=null).length,0);$('#cards').innerHTML=[['Ações no histórico',all.length],['Ações encontradas',stocks.length],['Watchlists no período',dates.length],['Observações',observations]].map(([k,v])=>`<article class="card"><div class="card-label">${k}</div><div class="card-value">${v}</div><div class="card-detail">${mercadoAtual==='B3'?'B3':'Estados Unidos'}</div></article>`).join('');$('#period').textContent=dates.length?`${dates[0]} a ${dates.at(-1)} · ${dates.length} datas`:'Sem watchlists neste intervalo';$('#marketTitle').textContent=mercadoAtual;$('#marketTag').textContent=mercadoAtual==='B3'?'BRASIL':'ESTADOS UNIDOS';$('#tableCaption').textContent=`${stocks.length} ações · ${observations} observações no período selecionado`;if(!stocks.length){$('#tableWrap').innerHTML='<div class="empty">Nenhuma ação encontrada com estes filtros.</div>';return}const rows=stocks.map((a,i)=>{const latest=observacaoAtual(a,dates);const company=a.empresa&&a.empresa!=='—'?a.empresa:'';const cells=METRICS.map(([key])=>`<td class="metric-cell"><div class="spark-wrap">${spark(a.serie,key,dates)}<span class="spark-value">${label(key,latest?.[key]??null)}</span></div></td>`).join('');return `<tbody><tr><td class="ticker">${esc(a.ticker)}</td><td class="company">${esc(company)}</td>${cells}<td><button class="expand" data-detail="${i}" aria-expanded="false">Detalhes</button></td></tr><tr class="detail-row" id="detail-${i}" hidden><td colspan="7">${historyRows(a,dates)}</td></tr></tbody>`}).join('');$('#tableWrap').innerHTML=`<table><thead><tr><th>Ação</th><th>Empresa</th>${METRICS.map(([,n])=>`<th>${n} · evolução</th>`).join('')}<th></th></tr></thead>${rows}</table>`;$('#tableWrap').querySelectorAll('.expand').forEach(b=>b.addEventListener('click',()=>{const tr=$(`#detail-${b.dataset.detail}`),open=tr.hidden;tr.hidden=!open;b.setAttribute('aria-expanded',String(open));b.textContent=open?'Fechar':'Detalhes'}))}
+document.querySelectorAll('.market-tab').forEach(b=>b.addEventListener('click',()=>{mercadoAtual=b.dataset.market;document.querySelectorAll('.market-tab').forEach(x=>x.classList.toggle('active',x===b));render()}));['search','from','to','sort'].forEach(id=>$('#'+id).addEventListener('input',render));$('#sort').addEventListener('change',render);
+$('#watchlistLink').href=BASE?BASE+'/':'/';$('#resultsLink').href=(BASE||'')+'/resultados';
+async function start(){try{const r=await fetch(`${BASE}/api/resultados`,{cache:'no-store'});if(!r.ok)throw new Error('Não foi possível carregar o histórico.');dados=await r.json();if(dados.datas.length){$('#from').value=dados.datas[0];$('#to').value=dados.datas.at(-1)}render()}catch(e){$('#tableWrap').innerHTML=`<div class="error">${esc(e.message)}</div>`}}start();
+</script></body></html>'''.replace("__BASE__", json.dumps(base_path))
+
+
 def resolver_get(url: str, base_path: str) -> tuple[int, bytes, str]:
     """Resolve rotas de leitura; separado do socket para permitir testes locais."""
     base = "/" + base_path.strip("/") if base_path.strip("/") else ""
@@ -504,8 +614,18 @@ def resolver_get(url: str, base_path: str) -> tuple[int, bytes, str]:
 
     if caminho in {"/", base or "/", base + "/"}:
         return 200, html_dashboard(base).encode("utf-8"), "text/html; charset=utf-8"
+    if api_path == "/resultados":
+        return 200, html_resultados(base).encode("utf-8"), "text/html; charset=utf-8"
     if api_path == "/healthz":
         return 200, b"ok", "text/plain; charset=utf-8"
+    if api_path == "/api/resultados":
+        try:
+            corpo = json.dumps(montar_resultados(), ensure_ascii=False).encode("utf-8")
+        except (OSError, UnicodeError, ValueError) as erro:
+            LOG.exception("Falha ao montar o histórico de resultados: %s", erro)
+            corpo = json.dumps({"erro": "Não foi possível carregar o histórico."}, ensure_ascii=False).encode("utf-8")
+            return 500, corpo, "application/json; charset=utf-8"
+        return 200, corpo, "application/json; charset=utf-8"
     if api_path == "/api/datas":
         corpo = json.dumps(listar_datas(), ensure_ascii=False).encode("utf-8")
         return 200, corpo, "application/json; charset=utf-8"
